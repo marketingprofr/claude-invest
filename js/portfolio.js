@@ -23,9 +23,9 @@ class PortfolioManager {
 
     async init() {
         await this.loadPortfolio();
-        this.calculateInitialShares();
+        // Ne pas calculer les actions initiales ici - attendre le premier refresh des prix
         this.isInitialized = true;
-        debug.success('Portfolio Manager initialisé');
+        debug.success('Portfolio Manager initialisé (en attente des prix pour calcul des actions)');
     }
 
     // Calcul du nombre d'actions initial
@@ -49,15 +49,9 @@ class PortfolioManager {
     updateCurrentValue() {
         const etfData = ETF_DATA[this.portfolio.currentETF];
         if (etfData && etfData.price && this.portfolio.shares > 0) {
-            const oldValue = this.portfolio.currentValue;
             this.portfolio.currentValue = this.portfolio.shares * etfData.price;
             this.portfolio.performance = this.portfolio.currentValue - this.portfolio.investedValue;
             this.portfolio.performancePercent = (this.portfolio.performance / this.portfolio.investedValue) * 100;
-            
-            // Si c'était la première initialisation (currentValue était 0), recalculer
-            if (oldValue === 0 && this.portfolio.shares === 0) {
-                this.calculateInitialShares();
-            }
         }
     }
 
@@ -283,11 +277,10 @@ class PortfolioManager {
         };
         this.tradingLogs = [];
         
-        // Recalculer les actions initiales avec le prix actuel si disponible
-        this.calculateInitialShares();
+        // Ne pas calculer les actions immédiatement, attendre le prochain refresh
+        debug.success('Portefeuille réinitialisé à 100,000€ en VWCE (en attente des prix pour calcul des actions)');
         
         this.savePortfolio();
-        debug.success('Portefeuille réinitialisé à 100,000€ en VWCE');
     }
 
     // Sauvegarde du portefeuille en localStorage

@@ -565,18 +565,18 @@ class UIManager {
                         <div class="text-blue-600 font-medium">ETF Détenu</div>
                         <div class="font-bold text-lg">${stats.currentETF}</div>
                         <div class="text-xs text-gray-500">
-                            ${stats.shares > 0 ? `${stats.shares.toFixed(4)} actions` : 'Calcul en cours...'}
+                            ${stats.shares > 0 ? `${stats.shares.toFixed(4)} actions` : 'En attente du prix...'}
                         </div>
                     </div>
                     <div>
                         <div class="text-blue-600 font-medium">Valeur Actuelle</div>
                         <div class="font-bold text-lg">
-                            ${stats.currentValue > 0 ? `${stats.currentValue.toFixed(0)}€` : '100,000€'}
+                            ${stats.shares > 0 ? `${stats.currentValue.toFixed(0)}€` : '100,000€'}
                         </div>
                         <div class="text-xs ${stats.performance >= 0 ? 'text-green-600' : 'text-red-600'}">
-                            ${stats.currentValue > 0 ? 
+                            ${stats.shares > 0 ? 
                                 `${stats.performance >= 0 ? '+' : ''}${stats.performance.toFixed(0)}€ (${stats.performancePercent.toFixed(1)}%)` : 
-                                'Performance: En attente des prix'
+                                'Valeur initiale'
                             }
                         </div>
                     </div>
@@ -595,9 +595,11 @@ class UIManager {
                         </div>
                     </div>
                 </div>
-                <div class="mt-3 text-xs text-blue-700 bg-blue-100 p-2 rounded">
-                    💡 <strong>Démarrage:</strong> Portefeuille initialisé avec 100,000€ investis en ${stats.currentETF}. 
-                    Actualisez les cours pour voir le nombre d'actions exact et la valeur actuelle.
+                <div class="mt-3 text-xs ${stats.shares > 0 ? 'text-green-700 bg-green-100' : 'text-blue-700 bg-blue-100'} p-2 rounded">
+                    ${stats.shares > 0 ? 
+                        `✅ <strong>Portefeuille actif:</strong> ${stats.shares.toFixed(4)} actions ${stats.currentETF} d'une valeur de ${stats.currentValue.toFixed(0)}€` :
+                        `⏳ <strong>Initialisation:</strong> Portefeuille de 100,000€ en ${stats.currentETF}. Actualisez les cours pour calculer les actions.`
+                    }
                 </div>
                 <div class="mt-3 flex gap-2">
                     <button id="show-logs-btn" class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 flex items-center gap-1">
