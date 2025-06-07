@@ -32,9 +32,16 @@ class PortfolioManager {
     calculateInitialShares() {
         const etfData = ETF_DATA[this.portfolio.currentETF];
         if (etfData && etfData.price) {
+            // Calculer le nombre d'actions qu'on peut acheter avec 100,000€
             this.portfolio.shares = this.portfolio.investedValue / etfData.price;
             this.updateCurrentValue();
-            debug.info(`Actions initiales calculées: ${this.portfolio.shares.toFixed(4)} ${this.portfolio.currentETF} à ${etfData.price}€`);
+            debug.info(`Portefeuille initialisé: ${this.portfolio.shares.toFixed(4)} actions ${this.portfolio.currentETF} à ${etfData.price}€ = ${this.portfolio.currentValue.toFixed(2)}€`);
+        } else {
+            // Si pas de prix disponible, on utilise un prix de référence pour VWCE
+            const referencePrice = 108.50; // Prix de référence pour VWCE
+            this.portfolio.shares = this.portfolio.investedValue / referencePrice;
+            debug.warning(`Prix non disponible pour ${this.portfolio.currentETF}, utilisation du prix de référence: ${referencePrice}€`);
+            debug.info(`Portefeuille initialisé (référence): ${this.portfolio.shares.toFixed(4)} actions ${this.portfolio.currentETF}`);
         }
     }
 
@@ -42,9 +49,30 @@ class PortfolioManager {
     updateCurrentValue() {
         const etfData = ETF_DATA[this.portfolio.currentETF];
         if (etfData && etfData.price && this.portfolio.shares > 0) {
+            const oldValue = this.portfolio.currentValue;
             this.portfolio.currentValue = this.portfolio.shares * etfData.price;
             this.portfolio.performance = this.portfolio.currentValue - this.portfolio.investedValue;
             this.portfolio.performancePercent = (this.portfolio.performance / this.portfolio.investedValue) * 100;
+            
+            // Si c'était la première initialisation (currentValue était 0), recalculer
+            if (oldValue === 0 && this.portfolio.shares === 0) {
+                this.calculateInitialShares();
+            }
+        }
+    }
+
+    // Recalcul des actions avec les nouveaux prix (après refresh)
+    recalculateIfNeeded() {
+        const etfData = ETF_DATA[this.portfolio.currentETF];
+        
+        // Si on n'a pas d'actions mais qu'on devrait en avoir (valeur investie > 0)
+        if (this.portfolio.shares === 0 && this.portfolio.investedValue > 0 && etfData && etfData.price) {
+            debug.info('Recalcul des actions initiales avec les nouveaux prix...');
+            this.calculateInitialShares();
+            this.savePortfolio();
+        } else if (etfData && etfData.price) {
+            // Sinon, juste mettre à jour la valeur courante
+            this.updateCurrentValue();
         }
     }
 
@@ -254,9 +282,12 @@ class PortfolioManager {
             performancePercent: 0
         };
         this.tradingLogs = [];
+        
+        // Recalculer les actions initiales avec le prix actuel si disponible
         this.calculateInitialShares();
+        
         this.savePortfolio();
-        debug.success('Portefeuille réinitialisé');
+        debug.success('Portefeuille réinitialisé à 100,000€ en VWCE');
     }
 
     // Sauvegarde du portefeuille en localStorage
@@ -393,5 +424,6 @@ export const portfolio = {
     export: () => portfolioManager.exportTradingData(),
     import: (data) => portfolioManager.importTradingData(data),
     simulate: () => portfolioManager.simulatePerformance(),
-    updateValues: () => portfolioManager.updateCurrentValue()
+    updateValues: () => portfolioManager.updateCurrentValue(),
+    recalculate: () => portfolioManager.recalculateIfNeeded()
 };

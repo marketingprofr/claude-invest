@@ -564,25 +564,40 @@ class UIManager {
                     <div>
                         <div class="text-blue-600 font-medium">ETF Détenu</div>
                         <div class="font-bold text-lg">${stats.currentETF}</div>
-                        <div class="text-xs text-gray-500">${stats.shares.toFixed(4)} actions</div>
+                        <div class="text-xs text-gray-500">
+                            ${stats.shares > 0 ? `${stats.shares.toFixed(4)} actions` : 'Calcul en cours...'}
+                        </div>
                     </div>
                     <div>
                         <div class="text-blue-600 font-medium">Valeur Actuelle</div>
-                        <div class="font-bold text-lg">${stats.currentValue.toFixed(0)}€</div>
+                        <div class="font-bold text-lg">
+                            ${stats.currentValue > 0 ? `${stats.currentValue.toFixed(0)}€` : '100,000€'}
+                        </div>
                         <div class="text-xs ${stats.performance >= 0 ? 'text-green-600' : 'text-red-600'}">
-                            ${stats.performance >= 0 ? '+' : ''}${stats.performance.toFixed(0)}€ (${stats.performancePercent.toFixed(1)}%)
+                            ${stats.currentValue > 0 ? 
+                                `${stats.performance >= 0 ? '+' : ''}${stats.performance.toFixed(0)}€ (${stats.performancePercent.toFixed(1)}%)` : 
+                                'Performance: En attente des prix'
+                            }
                         </div>
                     </div>
                     <div>
                         <div class="text-blue-600 font-medium">Trades</div>
                         <div class="font-bold text-lg">${stats.totalTrades}</div>
-                        <div class="text-xs text-gray-500">${stats.successRate.toFixed(1)}% réussis</div>
+                        <div class="text-xs text-gray-500">
+                            ${stats.totalTrades > 0 ? `${stats.successRate.toFixed(1)}% réussis` : 'Aucun trade'}
+                        </div>
                     </div>
                     <div>
                         <div class="text-blue-600 font-medium">Frais Totaux</div>
                         <div class="font-bold text-lg text-red-600">${stats.totalFees}€</div>
-                        <div class="text-xs text-gray-500">${stats.totalTrades} transactions</div>
+                        <div class="text-xs text-gray-500">
+                            ${stats.totalTrades} transaction${stats.totalTrades > 1 ? 's' : ''}
+                        </div>
                     </div>
+                </div>
+                <div class="mt-3 text-xs text-blue-700 bg-blue-100 p-2 rounded">
+                    💡 <strong>Démarrage:</strong> Portefeuille initialisé avec 100,000€ investis en ${stats.currentETF}. 
+                    Actualisez les cours pour voir le nombre d'actions exact et la valeur actuelle.
                 </div>
                 <div class="mt-3 flex gap-2">
                     <button id="show-logs-btn" class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 flex items-center gap-1">

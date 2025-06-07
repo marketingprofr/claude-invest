@@ -86,7 +86,12 @@ class TradingApp {
                 debug.info(`ETF actuel synchronisé: ${portfolioStats.currentETF}`);
             }
             
+            // Afficher les informations initiales du portefeuille
+            ui.updatePortfolioDisplay();
+            
             debug.success('Portefeuille virtuel initialisé');
+            debug.info(`Portefeuille de départ: 100,000€ investis en ${portfolioStats.currentETF}`);
+            
         } catch (error) {
             debug.error(`Erreur initialisation portefeuille: ${error.message}`);
         }
@@ -217,8 +222,8 @@ class TradingApp {
             ui.render();
             ui.updateLastRefresh();
             
-            // Mise à jour des valeurs du portefeuille
-            portfolio.updateValues();
+            // Mise à jour et recalcul du portefeuille avec les nouveaux prix
+            portfolio.recalculate();
             ui.updatePortfolioDisplay();
 
             // Analyse de trading
