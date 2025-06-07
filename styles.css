@@ -304,31 +304,159 @@
     font-size: 16px;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    .trading-notification {
-        right: 10px;
-        left: 10px;
-        max-width: none;
+/* Styles pour les boutons d'achat ETF */
+.buy-etf-btn {
+    transition: all 0.2s ease;
+}
+
+.buy-etf-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.buy-etf-btn:active {
+    transform: translateY(0);
+}
+
+.buy-etf-btn:disabled {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Styles pour la modal des logs */
+.logs-modal {
+    backdrop-filter: blur(4px);
+}
+
+.logs-modal .modal-content {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Styles pour les indicateurs de performance */
+.performance-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.performance-indicator.positive {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.performance-indicator.negative {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.performance-indicator.neutral {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+/* Styles pour les statistiques du portefeuille */
+.portfolio-stats {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border: 1px solid #93c5fd;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+}
+
+.portfolio-stat-item {
+    text-align: center;
+    padding: 8px;
+}
+
+.portfolio-stat-label {
+    font-size: 12px;
+    color: #3b82f6;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.portfolio-stat-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #1f2937;
+}
+
+.portfolio-stat-change {
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+/* Styles pour le tableau des logs */
+.logs-table {
+    font-size: 13px;
+}
+
+.logs-table th {
+    background: linear-gradient(135deg, #374151, #4b5563);
+    color: white;
+    font-weight: 600;
+    text-align: center;
+    padding: 10px 8px;
+    border: 1px solid #6b7280;
+}
+
+.logs-table td {
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    vertical-align: top;
+}
+
+.logs-table tr:hover {
+    background-color: #f8fafc;
+}
+
+.logs-table .trade-result.positive {
+    background-color: #dcfce7;
+    color: #166534;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.logs-table .trade-result.negative {
+    background-color: #fee2e2;
+    color: #991b1b;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Animation pour les nouveaux trades */
+@keyframes newTrade {
+    0% {
+        background-color: #fef3c7;
+        transform: scale(1.02);
     }
-    
-    .etf-table {
-        font-size: 14px;
+    50% {
+        background-color: #fbbf24;
     }
-    
-    .etf-table th,
-    .etf-table td {
-        padding: 8px 12px;
+    100% {
+        background-color: transparent;
+        transform: scale(1);
     }
-    
-    .price-display {
-        font-size: 20px;
-    }
-    
-    .trade-signal {
-        font-size: 16px;
-        padding: 10px 20px;
-    }
+}
+
+.new-trade-animation {
+    animation: newTrade 2s ease-out;
+}
+
+/* Styles pour les actions de la modal */
+.modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding: 16px;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
 }
 
 /* Styles pour les transitions fluides */
@@ -359,5 +487,54 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .trading-notification {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .etf-table {
+        font-size: 14px;
+    }
+    
+    .etf-table th,
+    .etf-table td {
+        padding: 8px 12px;
+    }
+    
+    .price-display {
+        font-size: 20px;
+    }
+    
+    .trade-signal {
+        font-size: 16px;
+        padding: 10px 20px;
+    }
+
+    .logs-table {
+        font-size: 11px;
+    }
+    
+    .logs-table th,
+    .logs-table td {
+        padding: 6px 4px;
+    }
+    
+    .portfolio-stats {
+        padding: 12px;
+    }
+    
+    .portfolio-stat-value {
+        font-size: 16px;
+    }
+    
+    .buy-etf-btn {
+        padding: 8px 12px;
+        font-size: 12px;
     }
 }

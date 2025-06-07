@@ -4,6 +4,7 @@ import { api } from './api.js';
 import { ui } from './ui.js';
 import { trading } from './trading.js';
 import { notifications } from './notifications.js';
+import { portfolio } from './portfolio.js';
 
 // Application principale
 class TradingApp {
@@ -56,6 +57,9 @@ class TradingApp {
     async initializeModules() {
         debug.info('Initialisation des modules...');
         
+        // Initialisation du portefeuille en premier
+        await this.initializePortfolio();
+        
         // Tous les modules sont déjà initialisés via leurs imports
         // Vérifier leur état
         const moduleStats = {
@@ -63,10 +67,29 @@ class TradingApp {
             api: api.stats(),
             ui: ui.getState(),
             trading: trading.getStats(),
-            notifications: notifications.getStats()
+            notifications: notifications.getStats(),
+            portfolio: portfolio.getStats()
         };
         
         debug.info('État des modules:', JSON.stringify(moduleStats, null, 2));
+    }
+
+    // Initialisation du portefeuille
+    async initializePortfolio() {
+        try {
+            debug.info('Initialisation du portefeuille virtuel...');
+            
+            // Synchroniser l'ETF actuel avec le portefeuille
+            const portfolioStats = portfolio.getStats();
+            if (portfolioStats.currentETF) {
+                ui.setState({ currentStock: portfolioStats.currentETF });
+                debug.info(`ETF actuel synchronisé: ${portfolioStats.currentETF}`);
+            }
+            
+            debug.success('Portefeuille virtuel initialisé');
+        } catch (error) {
+            debug.error(`Erreur initialisation portefeuille: ${error.message}`);
+        }
     }
 
     // Configuration des écouteurs d'événements
@@ -139,6 +162,7 @@ class TradingApp {
     initializeUI() {
         debug.info('Initialisation de l\'interface utilisateur...');
         ui.render();
+        ui.updatePortfolioDisplay();
     }
 
     // Message de bienvenue
@@ -151,6 +175,7 @@ class TradingApp {
         message += `✅ ${ETF_LIST.length} ETFs disponibles\n`;
         message += `✅ Seuil de trading: ${CONFIG.TRADING_THRESHOLD}%\n`;
         message += `✅ Notifications ${notifications.isEnabled() ? 'activées' : 'disponibles'}\n`;
+        message += '✅ Portefeuille virtuel activé\n';
         
         if (hasAdvancedFeatures) {
             message += '✅ Fonctionnalités avancées disponibles\n';
@@ -191,6 +216,10 @@ class TradingApp {
             // Mise à jour de l'interface
             ui.render();
             ui.updateLastRefresh();
+            
+            // Mise à jour des valeurs du portefeuille
+            portfolio.updateValues();
+            ui.updatePortfolioDisplay();
 
             // Analyse de trading
             const analysis = trading.analyze(ui.getCurrentStock(), ui.getPortfolioValue());
@@ -258,6 +287,16 @@ class TradingApp {
     // Gestion du changement d'ETF
     handleStockChange(newStock) {
         debug.info(`Changement d'ETF vers: ${newStock}`);
+        
+        // Vérifier si c'est cohérent avec le portefeuille
+        const portfolioStats = portfolio.getStats();
+        if (portfolioStats.currentETF !== newStock) {
+            debug.warning(`Incohérence détectée: UI=${newStock}, Portfolio=${portfolioStats.currentETF}`);
+            // Priorité au portefeuille, remettre l'UI en cohérence
+            ui.setState({ currentStock: portfolioStats.currentETF });
+            debug.info(`UI resynchronisée avec le portefeuille: ${portfolioStats.currentETF}`);
+            return;
+        }
         
         // Réanalyse immédiate si on a des données
         if (this.hasValidData()) {
@@ -487,9 +526,11 @@ class TradingApp {
                 api: api.stats(),
                 ui: ui.getState(),
                 trading: trading.getStats(),
-                notifications: notifications.getStats()
+                notifications: notifications.getStats(),
+                portfolio: portfolio.getStats()
             },
             performance: trading.getPerformance(),
+            portfolioPerformance: portfolio.simulate(),
             uptime: Date.now() - (this.state.initTimestamp || Date.now())
         };
     }
@@ -536,7 +577,8 @@ document.addEventListener('DOMContentLoaded', () => {
         debug: debug,
         api: api,
         ui: ui,
-        trading: trading
+        trading: trading,
+        portfolio: portfolio
     };
     
     console.log('🚀 Trading App chargée ! Utilisez window.debugApp pour le débogage.');

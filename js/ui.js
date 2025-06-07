@@ -67,6 +67,29 @@ class UIManager {
                 this.dispatchEvent('test-connection-requested');
             });
         }
+
+        // Écouteur délégué pour les boutons d'achat ETF
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.buy-etf-btn')) {
+                const button = e.target.closest('.buy-etf-btn');
+                const etf = button.dataset.etf;
+                const price = parseFloat(button.dataset.price);
+                this.handleBuyETF(etf, price);
+            }
+        });
+
+        // Écouteurs pour les boutons de logs
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#show-logs-btn')) {
+                this.showLogsModal();
+            }
+            if (e.target.closest('#export-logs-btn')) {
+                this.handleExportLogs();
+            }
+            if (e.target.closest('#reset-portfolio-btn')) {
+                this.handleResetPortfolio();
+            }
+        });
     }
 
     // Initialisation de l'interface
@@ -173,6 +196,9 @@ class UIManager {
             <td class="border border-gray-300 px-4 py-3 text-center">
                 ${this.getUpdateHTML(data)}
             </td>
+            <td class="border border-gray-300 px-4 py-3 text-center">
+                ${this.getBuyButtonHTML(etf, data)}
+            </td>
         `;
     }
 
@@ -217,6 +243,34 @@ class UIManager {
             return `<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">✓ ${data.lastUpdate}</span>`;
         }
         return '<span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">✗ Pas de données</span>';
+    }
+
+    // HTML pour le bouton d'achat
+    getBuyButtonHTML(etf, data) {
+        // Importer portfolio de manière dynamique pour éviter la dépendance circulaire
+        const isCurrentETF = etf === this.state.currentStock;
+        const hasPrice = data.price !== null && data.price !== undefined;
+        
+        if (isCurrentETF) {
+            return `<button class="px-3 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-semibold cursor-not-allowed" disabled>
+                        Déjà détenu
+                    </button>`;
+        }
+        
+        if (!hasPrice) {
+            return `<button class="px-3 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-semibold cursor-not-allowed" disabled>
+                        Prix indisponible
+                    </button>`;
+        }
+        
+        return `<button 
+                    class="buy-etf-btn px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center gap-1" 
+                    data-etf="${etf}"
+                    data-price="${data.price}"
+                >
+                    <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                    Acheter
+                </button>`;
     }
 
     // Mise à jour du statut de l'API
@@ -421,6 +475,297 @@ class UIManager {
         alert(message); // Simple pour l'instant, peut être amélioré avec des modales
     }
 
+    // Gestion de l'achat d'ETF
+    async handleBuyETF(etf, price) {
+        try {
+            // Import dynamique pour éviter la dépendance circulaire
+            const { portfolio } = await import('./portfolio.js');
+            
+            // Confirmation de l'achat
+            const confirmed = confirm(
+                `Confirmer l'achat de ${etf} ?\n\n` +
+                `Cette action va :\n` +
+                `• Vendre toutes vos actions de ${portfolio.getStats().currentETF}\n` +
+                `• Acheter ${etf} au prix de ${price}€\n` +
+                `• Prélever 50€ de frais de courtage\n\n` +
+                `Continuer ?`
+            );
+
+            if (!confirmed) return;
+
+            debug.info(`Tentative d'achat de ${etf} au prix de ${price}€`);
+            
+            // Exécution du trade
+            const tradeLog = await portfolio.executeTrade(etf);
+            
+            // Mise à jour de l'interface
+            this.state.currentStock = etf;
+            this.updateHeaderStock();
+            this.renderETFTable();
+            this.updatePortfolioDisplay();
+            
+            // Affichage du résultat
+            this.showTradeResult(tradeLog);
+            
+            debug.success(`Achat de ${etf} réussi`);
+            
+        } catch (error) {
+            debug.error(`Erreur lors de l'achat de ${etf}: ${error.message}`);
+            alert(`Erreur: ${error.message}`);
+        }
+    }
+
+    // Affichage du résultat d'un trade
+    showTradeResult(tradeLog) {
+        const resultMessage = `
+            🎉 Trade Exécuté avec Succès !
+
+            📊 Détails du trade :
+            • Vendu: ${tradeLog.soldShares.toFixed(4)} actions de ${tradeLog.soldETF} à ${tradeLog.soldPrice.toFixed(2)}€
+            • Valeur de vente: ${tradeLog.soldValue.toFixed(2)}€
+            
+            • Acheté: ${tradeLog.boughtShares.toFixed(4)} actions de ${tradeLog.boughtETF} à ${tradeLog.boughtPrice.toFixed(2)}€
+            • Valeur d'achat: ${tradeLog.boughtValue.toFixed(2)}€
+            
+            💰 Résultat :
+            • Frais de courtage: ${tradeLog.tradingFees}€
+            • Différence de valeur: ${tradeLog.valueDifference > 0 ? '+' : ''}${tradeLog.valueDifference.toFixed(2)}€
+            
+            📈 Performance :
+            ${tradeLog.reason}
+        `;
+        
+        alert(resultMessage);
+    }
+
+    // Mise à jour de l'affichage du portefeuille
+    async updatePortfolioDisplay() {
+        try {
+            const { portfolio } = await import('./portfolio.js');
+            const stats = portfolio.getStats();
+            
+            // Mise à jour des informations de portefeuille dans l'en-tête
+            const portfolioInfo = document.getElementById('portfolio-info');
+            if (portfolioInfo) {
+                portfolioInfo.innerHTML = this.getPortfolioInfoHTML(stats);
+            }
+            
+        } catch (error) {
+            debug.warning(`Erreur mise à jour portefeuille: ${error.message}`);
+        }
+    }
+
+    // HTML pour les informations de portefeuille
+    getPortfolioInfoHTML(stats) {
+        return `
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                <h3 class="font-semibold text-blue-800 mb-3">💼 Portefeuille Virtuel</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <div class="text-blue-600 font-medium">ETF Détenu</div>
+                        <div class="font-bold text-lg">${stats.currentETF}</div>
+                        <div class="text-xs text-gray-500">${stats.shares.toFixed(4)} actions</div>
+                    </div>
+                    <div>
+                        <div class="text-blue-600 font-medium">Valeur Actuelle</div>
+                        <div class="font-bold text-lg">${stats.currentValue.toFixed(0)}€</div>
+                        <div class="text-xs ${stats.performance >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${stats.performance >= 0 ? '+' : ''}${stats.performance.toFixed(0)}€ (${stats.performancePercent.toFixed(1)}%)
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-blue-600 font-medium">Trades</div>
+                        <div class="font-bold text-lg">${stats.totalTrades}</div>
+                        <div class="text-xs text-gray-500">${stats.successRate.toFixed(1)}% réussis</div>
+                    </div>
+                    <div>
+                        <div class="text-blue-600 font-medium">Frais Totaux</div>
+                        <div class="font-bold text-lg text-red-600">${stats.totalFees}€</div>
+                        <div class="text-xs text-gray-500">${stats.totalTrades} transactions</div>
+                    </div>
+                </div>
+                <div class="mt-3 flex gap-2">
+                    <button id="show-logs-btn" class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 flex items-center gap-1">
+                        <i data-lucide="list" class="w-3 h-3"></i>
+                        Voir Logs
+                    </button>
+                    <button id="export-logs-btn" class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center gap-1">
+                        <i data-lucide="download" class="w-3 h-3"></i>
+                        Export
+                    </button>
+                    <button id="reset-portfolio-btn" class="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 flex items-center gap-1">
+                        <i data-lucide="refresh-ccw" class="w-3 h-3"></i>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Affichage de la modal des logs
+    async showLogsModal() {
+        try {
+            const { portfolio } = await import('./portfolio.js');
+            const logs = portfolio.getLogs(20); // 20 derniers trades
+            
+            this.createLogsModal(logs);
+            
+        } catch (error) {
+            debug.error(`Erreur affichage logs: ${error.message}`);
+            alert(`Erreur: ${error.message}`);
+        }
+    }
+
+    // Création de la modal des logs
+    createLogsModal(logs) {
+        // Supprimer une modal existante
+        const existingModal = document.getElementById('logs-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'logs-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden">
+                <div class="flex items-center justify-between p-4 border-b">
+                    <h2 class="text-xl font-bold text-gray-800">📊 Historique des Trades</h2>
+                    <button id="close-logs-modal" class="text-gray-500 hover:text-gray-700">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="p-4 overflow-y-auto max-h-[70vh]">
+                    ${logs.length > 0 ? this.getLogsTableHTML(logs) : '<p class="text-center text-gray-500">Aucun trade effectué</p>'}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        lucide.createIcons();
+
+        // Événements de la modal
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.closest('#close-logs-modal')) {
+                modal.remove();
+            }
+        });
+    }
+
+    // HTML pour le tableau des logs
+    getLogsTableHTML(logs) {
+        return `
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse border border-gray-300 text-sm">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border border-gray-300 px-3 py-2 text-left">Date</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left">Trade</th>
+                            <th class="border border-gray-300 px-3 py-2 text-center">ETF Vendu</th>
+                            <th class="border border-gray-300 px-3 py-2 text-center">ETF Acheté</th>
+                            <th class="border border-gray-300 px-3 py-2 text-center">Résultat</th>
+                            <th class="border border-gray-300 px-3 py-2 text-center">Raison</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${logs.map(log => this.getLogRowHTML(log)).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    // HTML pour une ligne de log
+    getLogRowHTML(log) {
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="border border-gray-300 px-3 py-2">
+                    <div class="font-medium">${log.dateFormatted.split(' ')[0]}</div>
+                    <div class="text-xs text-gray-500">${log.dateFormatted.split(' ')[1]}</div>
+                </td>
+                <td class="border border-gray-300 px-3 py-2">
+                    <div class="font-bold">${log.soldETF} → ${log.boughtETF}</div>
+                    <div class="text-xs text-gray-500">Trade #${log.id.split('_')[1]}</div>
+                </td>
+                <td class="border border-gray-300 px-3 py-2 text-center">
+                    <div class="font-medium">${log.soldShares.toFixed(4)} actions</div>
+                    <div class="text-xs">à ${log.soldPrice.toFixed(2)}€</div>
+                    <div class="text-xs ${log.soldVariation >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${log.soldVariation >= 0 ? '+' : ''}${log.soldVariation.toFixed(2)}%
+                    </div>
+                    <div class="font-medium text-blue-600">${log.soldValue.toFixed(0)}€</div>
+                </td>
+                <td class="border border-gray-300 px-3 py-2 text-center">
+                    <div class="font-medium">${log.boughtShares.toFixed(4)} actions</div>
+                    <div class="text-xs">à ${log.boughtPrice.toFixed(2)}€</div>
+                    <div class="text-xs ${log.boughtVariation >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${log.boughtVariation >= 0 ? '+' : ''}${log.boughtVariation.toFixed(2)}%
+                    </div>
+                    <div class="font-medium text-blue-600">${log.boughtValue.toFixed(0)}€</div>
+                </td>
+                <td class="border border-gray-300 px-3 py-2 text-center">
+                    <div class="font-bold ${log.valueDifference >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${log.valueDifference >= 0 ? '+' : ''}${log.valueDifference.toFixed(0)}€
+                    </div>
+                    <div class="text-xs text-red-500">Frais: ${log.tradingFees}€</div>
+                    <div class="text-xs font-medium ${(log.valueDifference - log.tradingFees) >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        Net: ${(log.valueDifference - log.tradingFees) >= 0 ? '+' : ''}${(log.valueDifference - log.tradingFees).toFixed(0)}€
+                    </div>
+                </td>
+                <td class="border border-gray-300 px-3 py-2 text-xs">
+                    ${log.reason}
+                    <div class="mt-1 text-xs text-gray-500">
+                        Gain espéré: ${log.expectedGain.toFixed(0)}€
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    // Gestion de l'export des logs
+    async handleExportLogs() {
+        try {
+            const { portfolio } = await import('./portfolio.js');
+            portfolio.export();
+            this.showMessage('Données de portefeuille exportées avec succès', 'success');
+        } catch (error) {
+            debug.error(`Erreur export: ${error.message}`);
+            this.showMessage(`Erreur lors de l'export: ${error.message}`, 'error');
+        }
+    }
+
+    // Gestion du reset du portefeuille
+    async handleResetPortfolio() {
+        const confirmed = confirm(
+            'Confirmer la réinitialisation du portefeuille ?\n\n' +
+            'Cette action va :\n' +
+            '• Supprimer tous les logs de trading\n' +
+            '• Remettre le portefeuille à 100,000€ en VWCE\n' +
+            '• Effacer toutes les statistiques\n\n' +
+            'Cette action est irréversible. Continuer ?'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const { portfolio } = await import('./portfolio.js');
+            portfolio.reset();
+            
+            // Mise à jour de l'interface
+            this.state.currentStock = 'VWCE';
+            this.updateHeaderStock();
+            this.renderETFTable();
+            this.updatePortfolioDisplay();
+            
+            this.showMessage('Portefeuille réinitialisé avec succès', 'success');
+            debug.success('Portefeuille réinitialisé');
+            
+        } catch (error) {
+            debug.error(`Erreur reset: ${error.message}`);
+            this.showMessage(`Erreur lors de la réinitialisation: ${error.message}`, 'error');
+        }
+    }
+
     // Dispatch d'événements personnalisés
     dispatchEvent(eventName, data = {}) {
         const event = new CustomEvent(eventName, { 
@@ -450,6 +795,7 @@ class UIManager {
     // Mise à jour forcée de l'UI
     forceUpdate() {
         this.renderETFTable();
+        this.updatePortfolioDisplay();
         lucide.createIcons();
     }
 }
@@ -469,5 +815,6 @@ export const ui = {
     getPortfolioValue: () => uiManager.getPortfolioValue(),
     getState: () => uiManager.getState(),
     setState: (state) => uiManager.setState(state),
-    forceUpdate: () => uiManager.forceUpdate()
+    forceUpdate: () => uiManager.forceUpdate(),
+    updatePortfolioDisplay: () => uiManager.updatePortfolioDisplay()
 };
