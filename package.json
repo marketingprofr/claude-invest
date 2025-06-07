@@ -1,0 +1,88 @@
+{
+  "name": "borse-trading-app",
+  "version": "1.0.0",
+  "description": "Application web moderne pour le trading automatisé d'ETF avec l'API Börse Frankfurt",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx serve .",
+    "dev": "npx live-server --port=8000",
+    "build": "echo 'No build step required - pure HTML/CSS/JS'",
+    "test": "echo 'Tests to be implemented'",
+    "lint": "echo 'Linting to be implemented'",
+    "deploy": "echo 'Deploy with GitHub Pages, Netlify, or Vercel'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/votre-username/borse-trading-app.git"
+  },
+  "keywords": [
+    "trading",
+    "etf",
+    "börse-frankfurt",
+    "finance",
+    "javascript",
+    "html",
+    "css",
+    "api",
+    "real-time",
+    "notifications",
+    "automated-trading",
+    "investment",
+    "stocks",
+    "portfolio"
+  ],
+  "author": {
+    "name": "Votre Nom",
+    "email": "votre.email@example.com",
+    "url": "https://github.com/votre-username"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/votre-username/borse-trading-app/issues"
+  },
+  "homepage": "https://votre-username.github.io/borse-trading-app",
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "serve": "^14.2.1"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "index.html",
+    "styles.css",
+    "js/",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {},
+  "optionalDependencies": {},
+  "peerDependencies": {},
+  "config": {
+    "trading": {
+      "threshold": 0.5,
+      "fees": 50,
+      "autoRefreshInterval": 900000
+    }
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/votre-username"
+  },
+  "directories": {
+    "doc": "./docs",
+    "example": "./examples",
+    "test": "./tests"
+  },
+  "preferGlobal": false,
+  "private": false,
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
+}
