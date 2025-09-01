@@ -3,211 +3,1816 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outil de Trading Automatisé - Börse Frankfurt</title>
+    <title>Trading par Analyse de Ratios - Architecture Améliorée</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        .ratio-card {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid #0ea5e9;
+        }
+        .matrix-cell {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .matrix-cell:hover {
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            border-color: #0ea5e9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .matrix-positive {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border-color: #10b981;
+        }
+        .matrix-negative {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-color: #ef4444;
+        }
+        .metric-positive { color: #059669; font-weight: bold; }
+        .metric-negative { color: #dc2626; font-weight: bold; }
+        .metric-neutral { color: #6b7280; font-weight: bold; }
+        .debug-console {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+        }
+        .matrix-header {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            font-weight: bold;
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <div class="max-w-6xl mx-auto p-6">
-        <div class="bg-white rounded-xl shadow-lg p-6">
-            <!-- Header -->
-            <header class="text-center mb-8">
-                <div class="flex items-center justify-center mb-4">
-                    <i data-lucide="calculator" class="w-8 h-8 text-blue-600 mr-3"></i>
-                    <h1 class="text-3xl font-bold text-gray-800">Trading Automatisé - Börse Frankfurt</h1>
+<body class="bg-gradient-to-br from-blue-50 to-cyan-100 min-h-screen">
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="flex items-center justify-center mb-4">
+                <i data-lucide="trending-up" class="w-8 h-8 text-blue-600 mr-3"></i>
+                <h1 class="text-3xl font-bold text-gray-800">Trading par Analyse de Ratios</h1>
+            </div>
+            <p class="text-gray-600">Architecture Améliorée - SOLID Principles & Clean Code</p>
+            <div class="mt-2 flex items-center justify-center">
+                <div class="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">
+                    📅 <span id="current-date"></span> | ✅ API Unifiée v2.0
                 </div>
-                <p class="text-gray-600">Données ETF en temps réel depuis Börse Frankfurt</p>
-                <div class="mt-2 flex items-center justify-center">
-                    <div class="text-sm text-blue-600 bg-blue-50 px-4 py-2 rounded-lg">
-                        📅 <span id="current-date"></span>
-                    </div>
-                </div>
-            </header>
+            </div>
+        </header>
 
-            <!-- Configuration -->
-            <div class="mb-8 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
-                <h2 class="text-lg font-semibold mb-4 text-green-800">🏛️ Configuration Börse Frankfurt</h2>
+        <!-- Configuration Panel -->
+        <div class="mb-8 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
+            <h2 class="text-lg font-semibold mb-4 text-green-800">🛠️ Configuration</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ETF Principal</label>
+                    <select id="current-etf" class="w-full p-3 border border-gray-300 rounded-lg bg-white text-lg font-semibold">
+                        <option value="VWCE" selected>VWCE - Vanguard All-World</option>
+                        <option value="IWDA">IWDA - iShares MSCI World</option>
+                        <option value="MEUD">MEUD - Amundi STOXX 600</option>
+                        <option value="IMAE">IMAE - iShares MSCI Europe</option>
+                    </select>
+                </div>
                 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Seuil Trading (%)</label>
+                    <input type="number" id="trading-threshold" value="0.5" step="0.1" min="0.1" max="5.0" 
+                           class="w-full p-3 border border-gray-300 rounded-lg bg-white text-lg font-semibold">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Seuil Alerte (%)</label>
+                    <input type="number" id="alert-threshold" value="1.0" step="0.1" min="0.1" max="10.0" 
+                           class="w-full p-3 border border-gray-300 rounded-lg bg-white text-lg font-semibold">
+                </div>
+            </div>
+
+            <!-- Auto-Refresh Controls -->
+            <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                    <i data-lucide="clock" class="w-4 h-4 mr-2"></i>
+                    Actualisation Automatique
+                </h3>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="auto-refresh-enabled" class="mr-2">
+                            <span class="text-sm">Activer auto-refresh</span>
+                        </label>
+                    </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">ETF Détenu</label>
-                        <select id="current-stock" class="w-full p-3 border border-gray-300 rounded-lg bg-white text-lg font-semibold">
-                            <option value="IWDA">IWDA (iShares Core MSCI World)</option>
-                            <option value="VWCE" selected>VWCE (Vanguard FTSE All-World)</option>
-                            <option value="MEUD">MEUD (Amundi STOXX Europe 600)</option>
-                            <option value="IMAE">IMAE (iShares Core MSCI Europe)</option>
+                        <label class="block text-xs text-gray-600 mb-1">Intervalle (minutes)</label>
+                        <select id="auto-refresh-interval" class="w-full p-2 border border-gray-300 rounded text-sm" disabled>
+                            <option value="1">1 minute</option>
+                            <option value="5">5 minutes</option>
+                            <option value="15" selected>15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 heure</option>
                         </select>
                     </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Valeur Portefeuille (€)</label>
-                        <input
-                            type="number"
-                            id="portfolio-value"
-                            value="100000"
-                            class="w-full p-3 border border-gray-300 rounded-lg text-lg font-semibold"
-                        />
+                    <div class="text-xs text-gray-600">
+                        <div><strong>Statut:</strong> <span id="auto-refresh-status">Désactivé</span></div>
+                        <div><strong>Prochain:</strong> <span id="next-refresh-time">-</span></div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Informations du portefeuille virtuel -->
-                <div id="portfolio-info" class="mb-4">
-                    <!-- Contenu généré dynamiquement -->
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <div class="flex space-x-4">
-                        <button
-                            id="refresh-btn"
-                            class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center font-semibold"
-                        >
-                            <i data-lucide="refresh-cw" class="w-5 h-5 mr-2"></i>
-                            Actualiser les Cours
-                        </button>
-                        
-                        <button
-                            id="test-connection-btn"
-                            class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center"
-                        >
-                            <i data-lucide="play" class="w-4 h-4 mr-2"></i>
-                            Test Connexion
-                        </button>
+            <!-- Alert Controls -->
+            <div class="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <h3 class="text-sm font-semibold text-orange-800 mb-3 flex items-center">
+                    <i data-lucide="bell" class="w-4 h-4 mr-2"></i>
+                    Système d'Alertes
+                </h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="alerts-enabled" class="mr-2" checked>
+                            <span class="text-sm">Activer les alertes</span>
+                        </label>
                     </div>
+                    <div class="text-xs text-orange-700">
+                        <div><strong>Statut:</strong> <span id="alert-status">Activé</span></div>
+                        <div><strong>Dernière alerte:</strong> <span id="last-alert-time">Jamais</span></div>
+                        <div><strong>Historique:</strong> <span id="alert-history-count">0</span> alertes</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div class="flex space-x-4">
+                    <button id="refresh-btn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center font-semibold">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 mr-2"></i>
+                        Actualiser
+                    </button>
                     
-                    <div id="last-refresh" class="text-sm text-gray-600"></div>
-                </div>
-                
-                <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p class="text-blue-800 text-sm">
-                        ℹ️ <strong>Source de données:</strong> API Börse Frankfurt (api.boerse-frankfurt.de)
-                        <br>• API publique gratuite - pas de clé requise
-                        <br>• Cours ETF en temps réel pendant les heures de marché
-                        <br>• Mise à jour automatique toutes les 15 minutes
-                        <br>• URL API: https://api.boerse-frankfurt.de/v1/data/quote_box/single?isin=...
-                    </p>
-                </div>
-                
-                <div id="debug-info" class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <h4 class="font-semibold text-gray-800 mb-2">🔍 Informations de débogage</h4>
-                    <div id="debug-content" class="text-sm text-gray-700 font-mono"></div>
-                    <button id="toggle-debug" class="mt-2 text-blue-600 hover:underline text-sm">Afficher/Masquer logs</button>
-                </div>
-            </div>
+                    <button id="test-connection-btn" class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 flex items-center">
+                        <i data-lucide="play" class="w-4 h-4 mr-2"></i>
+                        Test API
+                    </button>
+                    
+                    <button id="simulate-purchase" class="bg-purple-600 text-white px-4 py-3 rounded-lg hover:purple-700 flex items-center">
+                        <i data-lucide="shopping-cart" class="w-4 h-4 mr-2"></i>
+                        Simuler Achat
+                    </button>
 
-            <!-- Tableau des cours -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i data-lucide="trending-up" class="w-5 h-5 mr-2 text-green-600"></i>
-                    Cours en Temps Réel - Börse Frankfurt
-                </h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden">
-                        <thead>
-                            <tr class="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
-                                <th class="border border-gray-300 px-4 py-3 text-left">ETF</th>
-                                <th class="border border-gray-300 px-4 py-3 text-center">Prix Actuel (€)</th>
-                                <th class="border border-gray-300 px-4 py-3 text-center">Variation Journalière</th>
-                                <th class="border border-gray-300 px-4 py-3 text-center">Delta vs <span id="header-current-stock">VWCE</span></th>
-                                <th class="border border-gray-300 px-4 py-3 text-center">Dernière MAJ</th>
-                                <th class="border border-gray-300 px-4 py-3 text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="etf-table-body">
-                            <!-- Contenu généré dynamiquement -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Recommandations -->
-            <div id="recommendation-section" class="mb-8 hidden">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i data-lucide="alert-triangle" class="w-5 h-5 mr-2 text-orange-600"></i>
-                    Signal de Trading Automatique
-                </h2>
-                <div id="recommendation-content">
-                    <!-- Contenu généré dynamiquement -->
-                </div>
-            </div>
-
-            <!-- Analyse des deltas -->
-            <div id="deltas-section" class="mb-8 hidden">
-                <h2 class="text-xl font-semibold mb-4">Analyse Temps Réel des Opportunités</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse border border-gray-300 rounded-lg overflow-hidden">
-                        <thead>
-                            <tr class="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                                <th class="border border-gray-300 px-4 py-3 text-left">Rang</th>
-                                <th class="border border-gray-300 px-4 py-3 text-left">Échange</th>
-                                <th class="border border-gray-300 px-4 py-3 text-center">Delta Actuel</th>
-                                <th class="border border-gray-300 px-4 py-3 text-center">Signal</th>
-                                <th class="border border-gray-300 px-4 py-3 text-center">Gain Potentiel</th>
-                            </tr>
-                        </thead>
-                        <tbody id="deltas-table-body">
-                            <!-- Contenu généré dynamiquement -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Instructions -->
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h3 class="font-semibold text-green-800 mb-2">🏛️ Trading avec Börse Frankfurt - Mode d'emploi</h3>
-                <div class="text-green-700 text-sm space-y-2">
-                    <p><strong>1.</strong> Aucune clé API requise - utilise l'API publique de Börse Frankfurt</p>
-                    <p><strong>2.</strong> Cliquez "Test Connexion" pour vérifier l'accès à l'API</p>
-                    <p><strong>3.</strong> Si le test échoue (CORS), utilisez Firefox ou une extension CORS</p>
-                    <p><strong>4.</strong> Cliquez "Actualiser les Cours" pour récupérer les prix réels</p>
-                    <p><strong>5.</strong> <strong>🔔 Notifications activées</strong> - vous serez alerté automatiquement des opportunités !</p>
-                    <p><strong>6.</strong> <strong>💼 Portefeuille virtuel</strong> - cliquez "Acheter" pour simuler des trades réels</p>
-                    <p><strong>7.</strong> Suivez les signaux 🚀 : <strong>Delta > 0.5% = TRADER IMMÉDIATEMENT !</strong></p>
+                    <button id="show-alert-history" class="bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700 flex items-center">
+                        <i data-lucide="bell" class="w-4 h-4 mr-2"></i>
+                        Historique Alertes
+                    </button>
                 </div>
                 
-                <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                    <p class="text-blue-800 text-sm">
-                        <strong>💡 Nouvelles Fonctionnalités:</strong>
-                        <br>• <strong>Portefeuille virtuel</strong> - Démarre avec 100,000€ en VWCE
-                        <br>• <strong>Logs de trading détaillés</strong> pour chaque achat/vente
-                        <br>• <strong>Calcul automatique</strong> des gains/pertes et frais de courtage (50€/trade)
-                        <br>• <strong>Suivi de performance</strong> avec statistiques complètes
-                        <br>• <strong>Export des données</strong> pour analyse externe
-                        <br>• <strong>Boutons d'achat</strong> directement dans le tableau des ETF
-                    </p>
-                </div>
-                
-                <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                    <p class="text-blue-800 text-sm">
-                        <strong>💡 API Börse Frankfurt + Notifications:</strong>
-                        <br>• <strong>Données réelles</strong> depuis l'API officielle
-                        <br>• <strong>Notifications navigateur</strong> pour les signaux de trade
-                        <br>• <strong>Alertes automatiques</strong> quand delta > 0.5%
-                        <br>• <strong>Calcul en temps réel</strong> des opportunités
-                        <br>• <strong>Auto-refresh 15min</strong> avec surveillance continue
-                    </p>
-                </div>
-                
-                <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                    <p class="text-yellow-800 text-sm">
-                        <strong>⚠️ CORS Solutions:</strong> L'API fonctionne mais les navigateurs bloquent les requêtes cross-origin.
-                        <br><strong>Chrome:</strong> <code>chrome --disable-web-security --user-data-dir=/tmp/chrome_dev</code>
-                        <br><strong>Extensions:</strong> "CORS Unblock" (Chrome) ou "CORS Everywhere" (Firefox)
-                        <br><strong>Auto:</strong> L'outil essaie automatiquement des proxies CORS publics
-                    </p>
+                <div id="last-refresh" class="text-sm text-gray-600"></div>
+            </div>
+            
+            <!-- Status Panel -->
+            <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h4 class="text-sm font-semibold text-yellow-800 mb-2 flex items-center">
+                    <i data-lucide="info" class="w-4 h-4 mr-2"></i>
+                    Statut Système
+                </h4>
+                <div class="text-xs text-yellow-700">
+                    <div><strong>API:</strong> <span id="api-status">Non testé</span></div>
+                    <div class="mt-1"><strong>Dernière tentative:</strong> <span id="last-attempt">Jamais</span></div>
+                    <div class="mt-1"><strong>ETF chargés:</strong> <span id="etf-loaded-count">0/4</span></div>
                 </div>
             </div>
         </div>
+
+        <!-- ETF Data Grid -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i data-lucide="database" class="w-5 h-5 mr-2 text-green-600"></i>
+                Données ETF
+            </h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="etf-data-grid">
+                <!-- Generated dynamically -->
+            </div>
+        </div>
+
+        <!-- Comparison Matrix -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i data-lucide="grid-3x3" class="w-5 h-5 mr-2 text-purple-600"></i>
+                Matrice de Comparaison
+            </h2>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div id="comparison-matrix">
+                    <p class="text-gray-500 text-center">Actualisez les données pour voir la matrice</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div id="recommendations" class="mb-8 hidden">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i data-lucide="target" class="w-5 h-5 mr-2 text-orange-600"></i>
+                Recommandations
+            </h2>
+            <div id="recommendation-content"></div>
+        </div>
+
+        <!-- Purchase History -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i data-lucide="history" class="w-5 h-5 mr-2 text-purple-600"></i>
+                Historique des Achats
+            </h2>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div id="purchase-history">
+                    <p class="text-gray-500 text-center">Aucun achat simulé</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Console -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                <i data-lucide="terminal" class="w-4 h-4 mr-2"></i>
+                Console Debug
+            </h4>
+            <div id="debug-content" class="debug-console text-sm text-gray-700 font-mono">
+                Architecture améliorée initialisée...
+                Principes SOLID appliqués ✅
+                Séparation des responsabilités ✅
+            </div>
+            <button id="toggle-debug" class="mt-2 text-blue-600 hover:underline text-sm">Masquer Console</button>
+        </div>
     </div>
 
-    <!-- Scripts modulaires -->
-    <script type="module" src="js/config.js"></script>
-    <script type="module" src="js/debug.js"></script>
-    <script type="module" src="js/api.js"></script>
-    <script type="module" src="js/portfolio.js"></script>
-    <script type="module" src="js/ui.js"></script>
-    <script type="module" src="js/trading.js"></script>
-    <script type="module" src="js/notifications.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <script type="module">
+        // =============================================================================
+        // AUTO-REFRESH & ALERT SERVICES - New Features
+        // =============================================================================
+        class AutoRefreshService {
+            constructor(refreshCallback, debugManager) {
+                this.refreshCallback = refreshCallback;
+                this.debugManager = debugManager;
+                this.intervalId = null;
+                this.isEnabled = false;
+                this.interval = AppConfig.TRADING.AUTO_REFRESH_INTERVAL;
+                this.nextRefreshTime = null;
+            }
+
+            start() {
+                if (this.isEnabled) {
+                    this.debugManager.warning('Auto-refresh déjà activé');
+                    return;
+                }
+
+                this.isEnabled = true;
+                this.scheduleNextRefresh();
+                this.debugManager.success(`Auto-refresh activé - Intervalle: ${this.interval / 60000} minutes`);
+            }
+
+            stop() {
+                if (!this.isEnabled) {
+                    this.debugManager.warning('Auto-refresh déjà désactivé');
+                    return;
+                }
+
+                this.isEnabled = false;
+                if (this.intervalId) {
+                    clearTimeout(this.intervalId);
+                    this.intervalId = null;
+                }
+                this.nextRefreshTime = null;
+                this.debugManager.info('Auto-refresh désactivé');
+            }
+
+            scheduleNextRefresh() {
+                if (!this.isEnabled) return;
+
+                this.nextRefreshTime = new Date(Date.now() + this.interval);
+                this.intervalId = setTimeout(async () => {
+                    if (this.isEnabled) {
+                        this.debugManager.info('🔄 Auto-refresh déclenché');
+                        try {
+                            await this.refreshCallback();
+                            this.scheduleNextRefresh(); // Programmer le suivant
+                        } catch (error) {
+                            this.debugManager.error(`Erreur auto-refresh: ${error.message}`);
+                            this.scheduleNextRefresh(); // Continuer même en cas d'erreur
+                        }
+                    }
+                }, this.interval);
+
+                this.debugManager.info(`Prochain refresh: ${this.nextRefreshTime.toLocaleTimeString('fr-FR')}`);
+            }
+
+            getStatus() {
+                return {
+                    isEnabled: this.isEnabled,
+                    nextRefresh: this.nextRefreshTime,
+                    intervalMinutes: this.interval / 60000
+                };
+            }
+
+            setInterval(minutes) {
+                const newInterval = minutes * 60 * 1000;
+                if (newInterval < 60000) { // Minimum 1 minute
+                    throw new Error('Intervalle minimum: 1 minute');
+                }
+                
+                this.interval = newInterval;
+                this.debugManager.info(`Intervalle auto-refresh changé: ${minutes} minutes`);
+                
+                // Redémarrer avec le nouvel intervalle si actif
+                if (this.isEnabled) {
+                    this.stop();
+                    this.start();
+                }
+            }
+        }
+
+        class AlertService {
+            constructor(debugManager) {
+                this.debugManager = debugManager;
+                this.isEnabled = true;
+                this.alertThreshold = AppConfig.TRADING.ALERT_THRESHOLD;
+                this.lastAlertTime = null;
+                this.alertCooldown = 5 * 60 * 1000; // 5 minutes entre alertes
+                this.alertHistory = [];
+            }
+
+            checkOpportunities(matrix) {
+                if (!this.isEnabled || !matrix) return;
+
+                const opportunities = this.findSignificantOpportunities(matrix);
+                
+                if (opportunities.length > 0 && this.canAlert()) {
+                    this.triggerAlert(opportunities);
+                }
+            }
+
+            findSignificantOpportunities(matrix) {
+                const significant = [];
+                
+                matrix.forEach(comparison => {
+                    const delta = Math.abs(comparison.deltas.deltaPct365);
+                    if (delta >= this.alertThreshold) {
+                        significant.push({
+                            etf1: comparison.etf1,
+                            etf2: comparison.etf2,
+                            delta: comparison.deltas.deltaPct365,
+                            isOpportunity: comparison.deltas.deltaPct365 < 0, // Négatif = opportunité
+                            severity: delta >= 2.0 ? 'HIGH' : 'MEDIUM'
+                        });
+                    }
+                });
+
+                return significant.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+            }
+
+            canAlert() {
+                if (!this.lastAlertTime) return true;
+                return (Date.now() - this.lastAlertTime) > this.alertCooldown;
+            }
+
+            triggerAlert(opportunities) {
+                const best = opportunities[0];
+                this.lastAlertTime = Date.now();
+                
+                // Ajouter à l'historique
+                this.alertHistory.push({
+                    timestamp: new Date(),
+                    opportunity: best,
+                    count: opportunities.length
+                });
+
+                // Limiter l'historique
+                if (this.alertHistory.length > 50) {
+                    this.alertHistory = this.alertHistory.slice(-50);
+                }
+
+                const alertMessage = this.createAlertMessage(best, opportunities.length);
+                
+                // Alert visuelle
+                this.showVisualAlert(alertMessage);
+                
+                // Log
+                this.debugManager.success(`🚨 ALERTE: ${best.etf1} vs ${best.etf2} - ${best.delta.toFixed(1)}%`);
+                
+                // Notification sonore si supportée
+                this.playAlertSound();
+            }
+
+            createAlertMessage(best, totalCount) {
+                const emoji = best.isOpportunity ? '📉' : '📈';
+                const action = best.isOpportunity ? 'ACHETER' : 'ÉVITER';
+                const severity = best.severity === 'HIGH' ? '🚨 ALERTE FORTE' : '⚠️ ALERTE';
+                
+                return `${severity}\n\n${emoji} ${action} ${best.etf1} au lieu de ${best.etf2}\n\nÉcart: ${Math.abs(best.delta).toFixed(1)}%\nNiveau: ${best.severity}\n\n${totalCount > 1 ? `${totalCount} opportunités détectées` : '1 opportunité détectée'}\n\n⏰ ${new Date().toLocaleTimeString('fr-FR')}`;
+            }
+
+            showVisualAlert(message) {
+                // Alert système
+                if (confirm(`${message}\n\nVoulez-vous voir les détails dans l'interface ?`)) {
+                    // Scroll vers les recommandations
+                    const recommendationsElement = document.getElementById('recommendations');
+                    if (recommendationsElement) {
+                        recommendationsElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            }
+
+            playAlertSound() {
+                try {
+                    // Créer un son d'alerte simple
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                } catch (error) {
+                    // Son non supporté ou bloqué - ignorer silencieusement
+                }
+            }
+
+            setEnabled(enabled) {
+                this.isEnabled = enabled;
+                this.debugManager.info(`Alertes ${enabled ? 'activées' : 'désactivées'}`);
+            }
+
+            setThreshold(threshold) {
+                if (threshold < 0.1 || threshold > 10) {
+                    throw new Error('Seuil d\'alerte doit être entre 0.1% et 10%');
+                }
+                this.alertThreshold = threshold;
+                this.debugManager.info(`Seuil d'alerte changé: ${threshold}%`);
+            }
+
+            getStatus() {
+                return {
+                    isEnabled: this.isEnabled,
+                    threshold: this.alertThreshold,
+                    lastAlert: this.lastAlertTime,
+                    historyCount: this.alertHistory.length,
+                    cooldownMinutes: this.alertCooldown / 60000
+                };
+            }
+
+            getAlertHistory() {
+                return [...this.alertHistory].reverse(); // Plus récent en premier
+            }
+        }
+
+        // =============================================================================
+        // CONFIGURATION - Single Source of Truth
+        // =============================================================================
+        class AppConfig {
+            static get API() {
+                return {
+                    UNIFIED_URL: 'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLh7GR8Yg6LDS-1KPCY_EI93amUwT7h2iENkkwTtjl3Q4tEEnQSzcikHloxT9-lEYB5buc_aUXZCmcT37Q-hjaIy_Q4QvmAZoOsVr0jd5a5LOFqrB_l6Vt8bOqnUROLiLQ_fQn7wbjy6UClst0bE52nZO1XwrATPGViGcqMkcwnt7nxHDxGTqzp3KJllDdHVwbdUkEhS2RtKvtk7NNvAhwICQU-eyBBUW6QRkZAduiFM9sUD8TfUcJDjeIQ7ct8F_g2KlXy8uhBejQWrpOfy-3dHazIAOw&lib=M-SffVGWd4FtS0DW94SjU9lUAAN-_j1xr',
+                    TIMEOUT: 10000,
+                    RETRY_ATTEMPTS: 3
+                };
+            }
+
+            static get TRADING() {
+                return {
+                    DEFAULT_THRESHOLD: 0.5,
+                    MIN_THRESHOLD: 0.1,
+                    MAX_THRESHOLD: 5.0,
+                    ALERT_THRESHOLD: 1.0,
+                    AUTO_REFRESH_INTERVAL: 15 * 60 * 1000 // 15 minutes en ms
+                };
+            }
+
+            static get ETF_DEFINITIONS() {
+                return {
+                    VWCE: { name: 'Vanguard FTSE All-World', symbol: 'VWCE' },
+                    IWDA: { name: 'iShares Core MSCI World', symbol: 'IWDA' },
+                    MEUD: { name: 'Amundi STOXX Europe 600', symbol: 'MEUD' },
+                    IMAE: { name: 'iShares Core MSCI Europe', symbol: 'IMAE' }
+                };
+            }
+
+            static get STORAGE_KEYS() {
+                return {
+                    PURCHASE_HISTORY: 'ratioTradingHistory',
+                    USER_PREFERENCES: 'tradingPreferences'
+                };
+            }
+        }
+
+        // =============================================================================
+        // ERROR HANDLING - Centralized Error Management
+        // =============================================================================
+        class ErrorHandler {
+            static handle(error, context = '') {
+                const errorInfo = {
+                    message: error.message || 'Erreur inconnue',
+                    context,
+                    timestamp: new Date().toISOString(),
+                    stack: error.stack
+                };
+
+                console.error('🚨 Erreur capturée:', errorInfo);
+                
+                // Log for debugging
+                if (window.debugManager) {
+                    window.debugManager.error(`${context}: ${errorInfo.message}`);
+                }
+
+                return errorInfo;
+            }
+
+            static createUserFriendlyMessage(error, context) {
+                const commonErrors = {
+                    'NetworkError': 'Problème de connexion réseau',
+                    'TimeoutError': 'Délai d\'attente dépassé',
+                    'ParseError': 'Erreur de traitement des données',
+                    'ValidationError': 'Données invalides'
+                };
+
+                const userMessage = commonErrors[error.name] || error.message;
+                return `${context}: ${userMessage}`;
+            }
+        }
+
+        // =============================================================================
+        // DEBUG MANAGER - Improved Logging
+        // =============================================================================
+        class DebugManager {
+            constructor() {
+                this.logs = [];
+                this.maxLogs = 100;
+                this.isVisible = true;
+                this.console = document.getElementById('debug-content');
+                this.setupToggle();
+            }
+
+            setupToggle() {
+                const toggleBtn = document.getElementById('toggle-debug');
+                toggleBtn?.addEventListener('click', () => {
+                    this.isVisible = !this.isVisible;
+                    this.console.style.display = this.isVisible ? 'block' : 'none';
+                    toggleBtn.textContent = this.isVisible ? 'Masquer Console' : 'Afficher Console';
+                });
+            }
+
+            log(message, level = 'INFO') {
+                const timestamp = new Date().toLocaleTimeString('fr-FR');
+                const prefix = this.getLevelPrefix(level);
+                const logEntry = `[${timestamp}] ${prefix}${message}`;
+                
+                this.logs.push(logEntry);
+                
+                if (this.logs.length > this.maxLogs) {
+                    this.logs = this.logs.slice(-this.maxLogs);
+                }
+                
+                this.updateDisplay();
+                console.log(`[Trading App] ${logEntry}`);
+            }
+
+            getLevelPrefix(level) {
+                const prefixes = {
+                    INFO: '📝 ',
+                    SUCCESS: '✅ ',
+                    WARNING: '⚠️ ',
+                    ERROR: '❌ ',
+                    API: '🔗 ',
+                    PERF: '⚡ '
+                };
+                return prefixes[level] || '';
+            }
+
+            success(message) { this.log(message, 'SUCCESS'); }
+            error(message) { this.log(message, 'ERROR'); }
+            warning(message) { this.log(message, 'WARNING'); }
+            info(message) { this.log(message, 'INFO'); }
+            api(message) { this.log(message, 'API'); }
+            perf(message) { this.log(message, 'PERF'); }
+
+            updateDisplay() {
+                if (this.console) {
+                    this.console.textContent = this.logs.join('\n');
+                    this.console.scrollTop = this.console.scrollHeight;
+                }
+            }
+
+            startOperation(operation) {
+                this.log(`=== ${operation.toUpperCase()} DÉBUT ===`);
+                return Date.now();
+            }
+
+            endOperation(operation, startTime) {
+                const duration = Date.now() - startTime;
+                this.perf(`${operation} terminé en ${duration}ms`);
+                this.log(`=== ${operation.toUpperCase()} FIN ===`);
+            }
+        }
+
+        // =============================================================================
+        // DATA MODELS - Type Safety & Validation
+        // =============================================================================
+        class ETFData {
+            constructor(symbol) {
+                this.symbol = symbol;
+                this.name = AppConfig.ETF_DEFINITIONS[symbol]?.name || symbol;
+                this.price = null;
+                this.moyenne30J = null;
+                this.moyenne365J = null;
+                this.varJ = null;
+                this.var5J = null;
+                this.lastUpdate = null;
+                this.isValid = false;
+            }
+
+            updateData(data) {
+                if (!this.validateData(data)) {
+                    throw new Error(`Données invalides pour ${this.symbol}`);
+                }
+
+                this.price = data.currentJ;
+                this.moyenne30J = data.moyenne30J;
+                this.moyenne365J = data.moyenne365J;
+                this.varJ = data.varJ;
+                this.var5J = data.var5J;
+                this.lastUpdate = new Date();
+                this.isValid = true;
+            }
+
+            validateData(data) {
+                return data && 
+                       typeof data.currentJ === 'number' && data.currentJ > 0 &&
+                       typeof data.moyenne30J === 'number' && data.moyenne30J > 0 &&
+                       typeof data.moyenne365J === 'number' && data.moyenne365J > 0 &&
+                       typeof data.varJ === 'number' &&
+                       typeof data.var5J === 'number';
+            }
+
+            getVariation30J() {
+                if (!this.isValid) return null;
+                return ((this.price - this.moyenne30J) / this.moyenne30J) * 100;
+            }
+
+            getVariation365J() {
+                if (!this.isValid) return null;
+                return ((this.price - this.moyenne365J) / this.moyenne365J) * 100;
+            }
+        }
+
+        class ComparisonResult {
+            constructor(etf1, etf2, etf1Data, etf2Data) {
+                this.etf1 = etf1;
+                this.etf2 = etf2;
+                this.prices = {
+                    etf1Current: etf1Data.price,
+                    etf2Current: etf2Data.price,
+                    etf1Avg365: etf1Data.moyenne365J,
+                    etf2Avg365: etf2Data.moyenne365J,
+                    etf1Avg30: etf1Data.moyenne30J,
+                    etf2Avg30: etf2Data.moyenne30J
+                };
+                
+                this.ratios = this.calculateRatios();
+                this.deltas = this.calculateDeltas();
+            }
+
+            calculateRatios() {
+                return {
+                    current: this.prices.etf1Current / this.prices.etf2Current,
+                    avg365: this.prices.etf1Avg365 / this.prices.etf2Avg365,
+                    avg30: this.prices.etf1Avg30 / this.prices.etf2Avg30
+                };
+            }
+
+            calculateDeltas() {
+                const delta365 = this.ratios.current - this.ratios.avg365;
+                const delta30 = this.ratios.current - this.ratios.avg30;
+                
+                return {
+                    delta365,
+                    delta30,
+                    deltaPct365: (delta365 / this.ratios.avg365) * 100,
+                    deltaPct30: (delta30 / this.ratios.avg30) * 100
+                };
+            }
+        }
+
+        // =============================================================================
+        // DATA SERVICES - Single Responsibility
+        // =============================================================================
+        class APIDataService {
+            constructor() {
+                this.corsProxies = [
+                    '',
+                    'https://api.allorigins.win/get?url=',
+                    'https://api.codetabs.com/v1/proxy?quest='
+                ];
+                this.lastSuccessfulProxy = null;
+            }
+
+            async fetchData() {
+                const startTime = Date.now();
+                let lastError = null;
+
+                // Try last successful proxy first
+                if (this.lastSuccessfulProxy !== null) {
+                    try {
+                        const result = await this.tryProxy(this.lastSuccessfulProxy);
+                        debugManager.perf(`API success in ${Date.now() - startTime}ms (cached proxy)`);
+                        return result;
+                    } catch (error) {
+                        debugManager.warning(`Cached proxy failed, trying others...`);
+                    }
+                }
+
+                // Try all proxies
+                for (let i = 0; i < this.corsProxies.length; i++) {
+                    try {
+                        const result = await this.tryProxy(i);
+                        this.lastSuccessfulProxy = i;
+                        debugManager.perf(`API success in ${Date.now() - startTime}ms (proxy ${i})`);
+                        return result;
+                    } catch (error) {
+                        lastError = error;
+                        debugManager.warning(`Proxy ${i} failed: ${error.message}`);
+                        
+                        if (i < this.corsProxies.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+                    }
+                }
+
+                throw new Error(`All proxies failed. Last error: ${lastError?.message}`);
+            }
+
+            async tryProxy(proxyIndex) {
+                const proxy = this.corsProxies[proxyIndex];
+                const url = proxy ? `${proxy}${encodeURIComponent(AppConfig.API.UNIFIED_URL)}` : AppConfig.API.UNIFIED_URL;
+                
+                debugManager.api(`Trying ${proxy || 'direct'} call...`);
+
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), AppConfig.API.TIMEOUT);
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json, text/plain, */*' },
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeout);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const text = await response.text();
+                    return this.parseResponse(text, proxy);
+
+                } catch (error) {
+                    clearTimeout(timeout);
+                    if (error.name === 'AbortError') {
+                        throw new Error('Request timeout');
+                    }
+                    throw error;
+                }
+            }
+
+            parseResponse(text, proxy) {
+                try {
+                    // Handle proxy wrappers
+                    if (proxy && text.includes('contents')) {
+                        const json = JSON.parse(text);
+                        text = json.contents || json.data || text;
+                    }
+
+                    return this.parseETFData(text);
+                } catch (error) {
+                    throw new Error(`Parse error: ${error.message}`);
+                }
+            }
+
+            parseETFData(rawData) {
+                const etfs = {};
+                const cleanData = rawData.replace(/[{}]/g, '');
+                const parts = cleanData.split(',');
+                
+                let currentETF = null;
+                
+                for (const part of parts) {
+                    const trimmed = part.trim();
+                    
+                    if (trimmed.startsWith('NAME:')) {
+                        currentETF = trimmed.replace('NAME:', '');
+                        if (!etfs[currentETF]) {
+                            etfs[currentETF] = {};
+                        }
+                    } else if (currentETF) {
+                        if (trimmed.startsWith('moyenne30J:')) {
+                            etfs[currentETF].moyenne30J = parseFloat(trimmed.replace('moyenne30J:', ''));
+                        } else if (trimmed.startsWith('moyenne365J:')) {
+                            etfs[currentETF].moyenne365J = parseFloat(trimmed.replace('moyenne365J:', ''));
+                        } else if (trimmed.startsWith('currentJ:')) {
+                            etfs[currentETF].currentJ = parseFloat(trimmed.replace('currentJ:', ''));
+                        } else if (trimmed.startsWith('varJ:')) {
+                            etfs[currentETF].varJ = parseFloat(trimmed.replace('varJ:', '').replace('%', ''));
+                        } else if (trimmed.startsWith('var5J:')) {
+                            etfs[currentETF].var5J = parseFloat(trimmed.replace('var5J:', '').replace('%', ''));
+                        }
+                    }
+                }
+                
+                return etfs;
+            }
+        }
+
+        class StorageService {
+            static save(key, data) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                    return true;
+                } catch (error) {
+                    ErrorHandler.handle(error, 'Storage Save');
+                    return false;
+                }
+            }
+
+            static load(key, defaultValue = null) {
+                try {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : defaultValue;
+                } catch (error) {
+                    ErrorHandler.handle(error, 'Storage Load');
+                    return defaultValue;
+                }
+            }
+
+            static remove(key) {
+                try {
+                    localStorage.removeItem(key);
+                    return true;
+                } catch (error) {
+                    ErrorHandler.handle(error, 'Storage Remove');
+                    return false;
+                }
+            }
+        }
+
+        // =============================================================================
+        // BUSINESS LOGIC SERVICES
+        // =============================================================================
+        class MatrixAnalyzer {
+            constructor() {
+                this.etfData = new Map();
+            }
+
+            updateETFData(symbol, data) {
+                if (!this.etfData.has(symbol)) {
+                    this.etfData.set(symbol, new ETFData(symbol));
+                }
+                
+                this.etfData.get(symbol).updateData(data);
+            }
+
+            generateMatrix() {
+                const validETFs = Array.from(this.etfData.values()).filter(etf => etf.isValid);
+                const matrix = [];
+
+                for (let i = 0; i < validETFs.length; i++) {
+                    for (let j = 0; j < validETFs.length; j++) {
+                        if (i !== j) {
+                            matrix.push(new ComparisonResult(
+                                validETFs[i].symbol,
+                                validETFs[j].symbol,
+                                validETFs[i],
+                                validETFs[j]
+                            ));
+                        }
+                    }
+                }
+
+                return matrix;
+            }
+
+            findBestGlobalOpportunity(matrix) {
+                // Trouve la MEILLEURE opportunité absolue dans toute la matrice
+                let bestOpportunity = null;
+                let bestDelta = 0;
+                
+                matrix.forEach(comparison => {
+                    if (comparison.deltas.deltaPct365 < bestDelta) {
+                        bestDelta = comparison.deltas.deltaPct365;
+                        bestOpportunity = {
+                            ...comparison,
+                            bestDelta: bestDelta
+                        };
+                    }
+                });
+
+                return bestOpportunity && bestDelta < -0.5 ? bestOpportunity : null;
+            }
+
+            findOpportunities(currentETF, threshold) {
+                const matrix = this.generateMatrix();
+                const opportunities = [];
+
+                const relevantComparisons = matrix.filter(comp => 
+                    comp.etf1 === currentETF || comp.etf2 === currentETF
+                );
+
+                for (const comp of relevantComparisons) {
+                    const isETF1Current = comp.etf1 === currentETF;
+                    const targetETF = isETF1Current ? comp.etf2 : comp.etf1;
+                    
+                    const delta365 = isETF1Current ? comp.deltas.deltaPct365 : -comp.deltas.deltaPct365;
+                    const delta30 = isETF1Current ? comp.deltas.deltaPct30 : -comp.deltas.deltaPct30;
+                    
+                    if (delta365 <= -threshold || delta30 <= -threshold) {
+                        opportunities.push({
+                            fromETF: currentETF,
+                            toETF: targetETF,
+                            delta365,
+                            delta30,
+                            comparison: comp,
+                            signal: Math.min(delta365, delta30) <= -threshold ? 'STRONG' : 'MODERATE'
+                        });
+                    }
+                }
+
+                return opportunities.sort((a, b) => 
+                    Math.min(a.delta365, a.delta30) - Math.min(b.delta365, b.delta30)
+                );
+            }
+
+            getETFData(symbol) {
+                return this.etfData.get(symbol);
+            }
+
+            getAllETFData() {
+                return Array.from(this.etfData.values());
+            }
+        }
+
+        class TradingEngine {
+            constructor(storageService) {
+                this.storageService = storageService;
+                this.purchaseHistory = this.loadHistory();
+            }
+
+            loadHistory() {
+                return this.storageService.load(AppConfig.STORAGE_KEYS.PURCHASE_HISTORY, []);
+            }
+
+            simulatePurchase(etfSymbol, price) {
+                if (!etfSymbol || !price || price <= 0) {
+                    throw new Error('Invalid purchase parameters');
+                }
+
+                const purchase = {
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    etf: etfSymbol,
+                    price: price,
+                    type: 'SIMULATED'
+                };
+
+                this.purchaseHistory.push(purchase);
+                this.storageService.save(AppConfig.STORAGE_KEYS.PURCHASE_HISTORY, this.purchaseHistory);
+                
+                return purchase;
+            }
+
+            getPurchaseHistory() {
+                return [...this.purchaseHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+            }
+        }
+
+        // =============================================================================
+        // UI CONTROLLERS - Single Responsibility UI Management
+        // =============================================================================
+        class ETFDisplayController {
+            constructor(container) {
+                this.container = container;
+            }
+
+            render(etfDataArray) {
+                const html = etfDataArray.map(etf => this.createETFCard(etf)).join('');
+                this.container.innerHTML = html;
+            }
+
+            createETFCard(etfData) {
+                const variation30 = etfData.getVariation30J();
+                const variation365 = etfData.getVariation365J();
+
+                return `
+                    <div class="bg-white rounded-lg p-4 border-2 border-gray-200">
+                        <div class="text-lg font-bold text-gray-800 mb-3">${etfData.symbol} - ${etfData.name}</div>
+                        <div class="grid grid-cols-5 gap-2 text-sm">
+                            <div>
+                                <div class="text-xs text-gray-500">Prix Actuel</div>
+                                <div class="text-xl font-bold text-blue-600">
+                                    ${etfData.price ? etfData.price.toFixed(2) + '€' : '--'}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Var. 1J</div>
+                                <div class="text-lg font-semibold ${this.getVariationClass(etfData.varJ)}">
+                                    ${etfData.varJ !== null ? `${etfData.varJ >= 0 ? '+' : ''}${etfData.varJ.toFixed(2)}%` : '--'}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Var. 5J</div>
+                                <div class="text-lg font-semibold ${this.getVariationClass(etfData.var5J)}">
+                                    ${etfData.var5J !== null ? `${etfData.var5J >= 0 ? '+' : ''}${etfData.var5J.toFixed(2)}%` : '--'}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Moy. 30J</div>
+                                <div class="text-lg font-semibold text-green-600">
+                                    ${etfData.moyenne30J ? etfData.moyenne30J.toFixed(2) + '€' : '--'}
+                                </div>
+                                <div class="text-xs font-medium ${this.getVariationClass(variation30)}">
+                                    ${variation30 ? `${variation30 >= 0 ? '+' : ''}${variation30.toFixed(1)}%` : '--'}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Moy. 365J</div>
+                                <div class="text-lg font-semibold text-orange-600">
+                                    ${etfData.moyenne365J ? etfData.moyenne365J.toFixed(2) + '€' : '--'}
+                                </div>
+                                <div class="text-xs font-medium ${this.getVariationClass(variation365)}">
+                                    ${variation365 ? `${variation365 >= 0 ? '+' : ''}${variation365.toFixed(1)}%` : '--'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            getVariationClass(variation) {
+                if (variation === null) return 'text-gray-400';
+                return variation >= 0 ? 'text-green-600' : 'text-red-600';
+            }
+        }
+
+        class MatrixDisplayController {
+            constructor(container) {
+                this.container = container;
+                this.matrixAnalyzer = null; // Sera injectée
+            }
+
+            setMatrixAnalyzer(analyzer) {
+                this.matrixAnalyzer = analyzer;
+            }
+
+            render(matrix, etfList) {
+                if (!matrix || matrix.length === 0) {
+                    this.container.innerHTML = '<p class="text-orange-600">Données insuffisantes pour la matrice</p>';
+                    return;
+                }
+
+                const html = this.createMatrixHTML(matrix, etfList);
+                this.container.innerHTML = html;
+            }
+
+            createMatrixHTML(matrix, etfList) {
+                let html = `
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr>
+                                    <th class="matrix-header p-3 text-center">ACHETER ↓ au lieu de →</th>
+                                    ${etfList.map(etf => `<th class="matrix-header p-3 text-center">${etf}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                etfList.forEach(etf1 => {
+                    html += '<tr>';
+                    html += `<td class="matrix-header p-3 text-center font-bold">${etf1}</td>`;
+                    
+                    etfList.forEach(etf2 => {
+                        if (etf1 === etf2) {
+                            html += '<td class="matrix-cell p-3 text-center bg-gray-100">-</td>';
+                        } else {
+                            const comparison = matrix.find(comp => comp.etf1 === etf1 && comp.etf2 === etf2);
+                            html += this.createMatrixCell(comparison);
+                        }
+                    });
+                    
+                    html += '</tr>';
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    ${this.createMatrixLegend()}
+                `;
+
+                // Ajouter la section de la meilleure opportunité si elle existe
+                if (this.matrixAnalyzer) {
+                    const bestOpportunity = this.matrixAnalyzer.findBestGlobalOpportunity(matrix);
+                    if (bestOpportunity) {
+                        html += this.createBestOpportunitySection(bestOpportunity);
+                    }
+                }
+
+                return html;
+            }
+
+            createMatrixCell(comparison) {
+                if (!comparison) {
+                    return '<td class="matrix-cell p-3 text-center text-gray-400">N/A</td>';
+                }
+
+                const delta = comparison.deltas.deltaPct365;
+                
+                // CORRECTION : Logique correcte pour les couleurs
+                const isETF1Cheaper = delta < -0.5;  // ETF1 moins cher = VERT
+                const isETF1Expensive = delta > 0.5;  // ETF1 plus cher = ROUGE
+                
+                const cellClass = isETF1Cheaper ? 'matrix-positive' : 
+                                 isETF1Expensive ? 'matrix-negative' : 'matrix-cell';
+                
+                const textClass = delta < 0 ? 'text-green-700' : 
+                                 delta > 0 ? 'text-red-700' : 'text-gray-700';
+
+                const statusText = delta < 0 ? 'Moins cher' : delta > 0 ? 'Plus cher' : 'Neutre';
+
+                return `
+                    <td class="${cellClass} p-3 text-center text-sm">
+                        <div class="font-bold text-lg ${textClass}">
+                            ${delta.toFixed(1)}%
+                        </div>
+                        <div class="text-xs font-semibold ${textClass}">
+                            ${statusText}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            30J: ${comparison.deltas.deltaPct30.toFixed(1)}%
+                        </div>
+                    </td>
+                `;
+            }
+
+            createBestOpportunitySection(bestOpportunity) {
+                return `
+                    <div class="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
+                        <h3 class="text-xl font-bold text-green-800 mb-4 flex items-center">
+                            🎯 MEILLEURE OPPORTUNITÉ DÉTECTÉE (Architecture Améliorée)
+                        </h3>
+                        
+                        <div class="bg-white rounded-lg p-4 mb-4">
+                            <div class="text-lg font-bold text-center text-green-700 mb-2">
+                                📉 ACHETER ${bestOpportunity.etf1} au lieu de ${bestOpportunity.etf2}
+                            </div>
+                            <div class="text-center text-green-600 font-semibold">
+                                ${bestOpportunity.etf1} est ${Math.abs(bestOpportunity.bestDelta).toFixed(1)}% moins cher que d'habitude vs ${bestOpportunity.etf2}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="bg-white rounded-lg p-4">
+                                <h4 class="font-semibold text-gray-800 mb-3">📊 Données Actuelles</h4>
+                                <div class="space-y-2 text-sm">
+                                    <div><strong>${bestOpportunity.etf1} :</strong> ${bestOpportunity.prices.etf1Current.toFixed(2)}€</div>
+                                    <div><strong>${bestOpportunity.etf2} :</strong> ${bestOpportunity.prices.etf2Current.toFixed(2)}€</div>
+                                    <div class="border-t pt-2">
+                                        <strong>Ratio actuel :</strong> ${bestOpportunity.ratios.current.toFixed(3)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-lg p-4">
+                                <h4 class="font-semibold text-gray-800 mb-3">📈 Moyennes Historiques (365J)</h4>
+                                <div class="space-y-2 text-sm">
+                                    <div><strong>${bestOpportunity.etf1} :</strong> ${bestOpportunity.prices.etf1Avg365.toFixed(2)}€</div>
+                                    <div><strong>${bestOpportunity.etf2} :</strong> ${bestOpportunity.prices.etf2Avg365.toFixed(2)}€</div>
+                                    <div class="border-t pt-2">
+                                        <strong>Ratio moyen 365J :</strong> ${bestOpportunity.ratios.avg365.toFixed(3)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-green-100 rounded-lg p-4 mt-4">
+                            <h4 class="font-semibold text-green-800 mb-2">🧮 Calcul de l'Opportunité</h4>
+                            <div class="text-sm">
+                                <strong>Delta relatif :</strong> <span class="font-bold text-green-700">${bestOpportunity.bestDelta.toFixed(1)}%</span>
+                                <div class="mt-2 font-semibold text-green-800">
+                                    💡 ${bestOpportunity.etf1} coûte ${Math.abs(bestOpportunity.bestDelta).toFixed(1)}% de moins que son ratio habituel → AUBAINE !
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            createMatrixLegend() {
+                return `
+                    <div class="mt-4 text-sm text-gray-600">
+                        <div class="flex flex-wrap gap-4 justify-center">
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 matrix-positive rounded mr-2"></div>
+                                📉 Moins cher (ACHETER)
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 matrix-negative rounded mr-2"></div>
+                                📈 Plus cher (ÉVITER)
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 matrix-cell rounded mr-2"></div>
+                                ⚖️ Neutre
+                            </div>
+                        </div>
+                        <p class="text-center mt-2 font-semibold">
+                            🎯 Architecture SOLID - Détection d'opportunités restaurée ✅
+                        </p>
+                        <p class="text-center text-xs">
+                            Écart vs moyenne 365J (principal) | Écart vs moyenne 30J (secondaire) | ✅ Code Clean
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        class RecommendationController {
+            constructor(container) {
+                this.container = container;
+            }
+
+            render(opportunities) {
+                const recommendationsDiv = document.getElementById('recommendations');
+                
+                if (!opportunities || opportunities.length === 0) {
+                    recommendationsDiv.classList.add('hidden');
+                    return;
+                }
+
+                recommendationsDiv.classList.remove('hidden');
+                this.container.innerHTML = this.createRecommendationHTML(opportunities);
+            }
+
+            createRecommendationHTML(opportunities) {
+                const best = opportunities[0];
+                const isStrong = best.signal === 'STRONG';
+
+                return `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="${isStrong ? 'matrix-positive' : 'matrix-cell'} rounded-xl p-6">
+                            <div class="text-center mb-4">
+                                <div class="text-2xl font-bold ${isStrong ? 'text-green-800' : 'text-blue-800'}">
+                                    ${isStrong ? '🚨 SIGNAL FORT' : '⚠️ SIGNAL MODÉRÉ'}
+                                </div>
+                                <div class="text-lg font-semibold">
+                                    ${best.fromETF} → ${best.toETF}
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg p-4 space-y-2">
+                                <div class="text-sm">
+                                    <strong>Delta vs 365J:</strong> 
+                                    <span class="metric-negative">${best.delta365.toFixed(2)}%</span>
+                                </div>
+                                <div class="text-sm">
+                                    <strong>Delta vs 30J:</strong> 
+                                    <span class="metric-negative">${best.delta30.toFixed(2)}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-6 border-2 border-gray-200">
+                            <h4 class="font-semibold text-gray-800 mb-4">📊 Toutes les Opportunités</h4>
+                            <div class="space-y-3 max-h-60 overflow-y-auto">
+                                ${opportunities.map(opp => `
+                                    <div class="border-b border-gray-100 pb-2">
+                                        <div class="font-medium">${opp.fromETF} → ${opp.toETF}</div>
+                                        <div class="text-xs text-gray-600">
+                                            365J: <span class="metric-negative">${opp.delta365.toFixed(1)}%</span> | 
+                                            30J: <span class="metric-negative">${opp.delta30.toFixed(1)}%</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        class PurchaseHistoryController {
+            constructor(container) {
+                this.container = container;
+            }
+
+            render(purchases) {
+                if (!purchases || purchases.length === 0) {
+                    this.container.innerHTML = '<p class="text-gray-500 text-center">Aucun achat simulé</p>';
+                    return;
+                }
+
+                const html = purchases.map(purchase => this.createPurchaseCard(purchase)).join('');
+                this.container.innerHTML = html;
+            }
+
+            createPurchaseCard(purchase) {
+                return `
+                    <div class="border-b border-gray-200 pb-3 mb-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-semibold text-lg">${purchase.etf}</div>
+                                <div class="text-sm text-gray-600">
+                                    ${new Date(purchase.date).toLocaleString('fr-FR')}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-blue-600">${purchase.price.toFixed(2)}€</div>
+                                <div class="text-xs text-green-600">${purchase.type}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // =============================================================================
+        // MAIN APPLICATION CONTROLLER - Orchestration
+        // =============================================================================
+        class TradingApplication {
+            constructor() {
+                this.debugManager = new DebugManager();
+                window.debugManager = this.debugManager; // Global access for error handler
+
+                this.apiService = new APIDataService();
+                this.matrixAnalyzer = new MatrixAnalyzer();
+                this.tradingEngine = new TradingEngine(StorageService);
+                
+                // Nouveaux services
+                this.autoRefreshService = new AutoRefreshService(
+                    () => this.refreshData(), 
+                    this.debugManager
+                );
+                this.alertService = new AlertService(this.debugManager);
+                
+                this.setupControllers();
+                this.setupEventListeners();
+                this.initializeState();
+                
+                this.debugManager.success('Application initialisée avec auto-refresh et alertes');
+            }
+
+            setupControllers() {
+                this.etfDisplayController = new ETFDisplayController(
+                    document.getElementById('etf-data-grid')
+                );
+                this.matrixDisplayController = new MatrixDisplayController(
+                    document.getElementById('comparison-matrix')
+                );
+                // INJECTION DE DÉPENDANCE : Injecter l'analyzer dans le controller
+                this.matrixDisplayController.setMatrixAnalyzer(this.matrixAnalyzer);
+                
+                this.recommendationController = new RecommendationController(
+                    document.getElementById('recommendation-content')
+                );
+                this.purchaseHistoryController = new PurchaseHistoryController(
+                    document.getElementById('purchase-history')
+                );
+            }
+
+            setupEventListeners() {
+                // Existing listeners
+                document.getElementById('refresh-btn')?.addEventListener('click', () => 
+                    this.refreshData()
+                );
+                
+                document.getElementById('test-connection-btn')?.addEventListener('click', () => 
+                    this.testConnection()
+                );
+                
+                document.getElementById('simulate-purchase')?.addEventListener('click', () => 
+                    this.simulatePurchase()
+                );
+
+                document.getElementById('current-etf')?.addEventListener('change', (e) => 
+                    this.updateCurrentETF(e.target.value)
+                );
+
+                document.getElementById('trading-threshold')?.addEventListener('change', (e) => 
+                    this.updateTradingThreshold(parseFloat(e.target.value))
+                );
+
+                // New auto-refresh listeners
+                document.getElementById('auto-refresh-enabled')?.addEventListener('change', (e) => 
+                    this.toggleAutoRefresh(e.target.checked)
+                );
+
+                document.getElementById('auto-refresh-interval')?.addEventListener('change', (e) => 
+                    this.updateAutoRefreshInterval(parseInt(e.target.value))
+                );
+
+                // New alert listeners
+                document.getElementById('alerts-enabled')?.addEventListener('change', (e) => 
+                    this.toggleAlerts(e.target.checked)
+                );
+
+                document.getElementById('alert-threshold')?.addEventListener('change', (e) => 
+                    this.updateAlertThreshold(parseFloat(e.target.value))
+                );
+
+                document.getElementById('show-alert-history')?.addEventListener('click', () => 
+                    this.showAlertHistory()
+                );
+
+                // Auto-refresh interval enable/disable logic
+                const autoRefreshEnabled = document.getElementById('auto-refresh-enabled');
+                const autoRefreshInterval = document.getElementById('auto-refresh-interval');
+                
+                autoRefreshEnabled?.addEventListener('change', (e) => {
+                    autoRefreshInterval.disabled = !e.target.checked;
+                });
+            }
+
+            initializeState() {
+                this.state = {
+                    currentETF: 'VWCE',
+                    tradingThreshold: AppConfig.TRADING.DEFAULT_THRESHOLD,
+                    lastRefresh: null
+                };
+
+                this.updateCurrentDate();
+                this.updatePurchaseHistory();
+                this.updateStatusDisplay();
+                this.updateAutoRefreshStatus();
+                this.updateAlertStatus();
+                
+                // Démarrer l'update périodique des statuts
+                this.startStatusUpdater();
+            }
+
+            startStatusUpdater() {
+                // Met à jour les statuts toutes les 10 secondes
+                setInterval(() => {
+                    this.updateAutoRefreshStatus();
+                    this.updateAlertStatus();
+                }, 10000);
+            }
+
+            // Auto-refresh methods
+            toggleAutoRefresh(enabled) {
+                if (enabled) {
+                    this.autoRefreshService.start();
+                } else {
+                    this.autoRefreshService.stop();
+                }
+                this.updateAutoRefreshStatus();
+            }
+
+            updateAutoRefreshInterval(minutes) {
+                try {
+                    this.autoRefreshService.setInterval(minutes);
+                    this.updateAutoRefreshStatus();
+                } catch (error) {
+                    const errorInfo = ErrorHandler.handle(error, 'Update Auto-refresh Interval');
+                    alert(`❌ ${ErrorHandler.createUserFriendlyMessage(error, 'Intervalle auto-refresh')}`);
+                }
+            }
+
+            updateAutoRefreshStatus() {
+                const status = this.autoRefreshService.getStatus();
+                const statusElement = document.getElementById('auto-refresh-status');
+                const nextTimeElement = document.getElementById('next-refresh-time');
+                
+                if (statusElement) {
+                    statusElement.textContent = status.isEnabled ? 
+                        `Actif (${status.intervalMinutes}min)` : 'Désactivé';
+                    statusElement.className = status.isEnabled ? 'text-green-600 font-semibold' : 'text-gray-600';
+                }
+                
+                if (nextTimeElement) {
+                    nextTimeElement.textContent = status.nextRefresh ? 
+                        status.nextRefresh.toLocaleTimeString('fr-FR') : '-';
+                }
+            }
+
+            // Alert methods
+            toggleAlerts(enabled) {
+                this.alertService.setEnabled(enabled);
+                this.updateAlertStatus();
+            }
+
+            updateAlertThreshold(threshold) {
+                try {
+                    this.alertService.setThreshold(threshold);
+                    this.updateAlertStatus();
+                } catch (error) {
+                    const errorInfo = ErrorHandler.handle(error, 'Update Alert Threshold');
+                    alert(`❌ ${ErrorHandler.createUserFriendlyMessage(error, 'Seuil d\'alerte')}`);
+                    
+                    // Reset to current value
+                    const thresholdInput = document.getElementById('alert-threshold');
+                    if (thresholdInput) {
+                        thresholdInput.value = this.alertService.getStatus().threshold;
+                    }
+                }
+            }
+
+            updateAlertStatus() {
+                const status = this.alertService.getStatus();
+                const statusElement = document.getElementById('alert-status');
+                const lastAlertElement = document.getElementById('last-alert-time');
+                const historyCountElement = document.getElementById('alert-history-count');
+                
+                if (statusElement) {
+                    statusElement.textContent = status.isEnabled ? 
+                        `Activé (>${status.threshold}%)` : 'Désactivé';
+                    statusElement.className = status.isEnabled ? 'text-green-600 font-semibold' : 'text-gray-600';
+                }
+                
+                if (lastAlertElement) {
+                    lastAlertElement.textContent = status.lastAlert ? 
+                        new Date(status.lastAlert).toLocaleTimeString('fr-FR') : 'Jamais';
+                }
+                
+                if (historyCountElement) {
+                    historyCountElement.textContent = status.historyCount;
+                }
+            }
+
+            showAlertHistory() {
+                const history = this.alertService.getAlertHistory();
+                
+                if (history.length === 0) {
+                    alert('📊 HISTORIQUE DES ALERTES\n\nAucune alerte enregistrée.\n\nLes alertes se déclenchent quand un écart > seuil d\'alerte est détecté.');
+                    return;
+                }
+
+                let message = '📊 HISTORIQUE DES ALERTES\n\n';
+                message += `Total: ${history.length} alertes\n`;
+                message += `Seuil actuel: ${this.alertService.getStatus().threshold}%\n\n`;
+                
+                // Afficher les 10 dernières alertes
+                const recent = history.slice(0, 10);
+                message += 'Dernières alertes:\n';
+                message += '═'.repeat(30) + '\n';
+                
+                recent.forEach((alert, index) => {
+                    const time = alert.timestamp.toLocaleString('fr-FR');
+                    const opp = alert.opportunity;
+                    const emoji = opp.isOpportunity ? '📉' : '📈';
+                    const action = opp.isOpportunity ? 'ACHETER' : 'ÉVITER';
+                    
+                    message += `${index + 1}. ${time}\n`;
+                    message += `   ${emoji} ${action} ${opp.etf1} vs ${opp.etf2}\n`;
+                    message += `   Écart: ${Math.abs(opp.delta).toFixed(1)}% (${opp.severity})\n\n`;
+                });
+
+                if (history.length > 10) {
+                    message += `... et ${history.length - 10} autres alertes`;
+                }
+
+                alert(message);
+            }
+
+            updateCurrentDate() {
+                const dateElement = document.getElementById('current-date');
+                if (dateElement) {
+                    const now = new Date();
+                    dateElement.textContent = now.toLocaleDateString('fr-FR', {
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                    });
+                }
+            }
+
+            updateStatusDisplay() {
+                const statusElement = document.getElementById('api-status');
+                const attemptElement = document.getElementById('last-attempt');
+                const etfCountElement = document.getElementById('etf-loaded-count');
+
+                if (statusElement) statusElement.textContent = 'Non testé';
+                if (attemptElement) attemptElement.textContent = 'Jamais';
+                if (etfCountElement) {
+                    const validCount = this.matrixAnalyzer.getAllETFData().filter(etf => etf.isValid).length;
+                    const totalCount = Object.keys(AppConfig.ETF_DEFINITIONS).length;
+                    etfCountElement.textContent = `${validCount}/${totalCount}`;
+                }
+            }
+
+            async refreshData() {
+                const refreshBtn = document.getElementById('refresh-btn');
+                const startTime = this.debugManager.startOperation('REFRESH DATA');
+                
+                try {
+                    this.setButtonLoading(refreshBtn, 'Chargement...');
+                    this.updateStatusElement('api-status', 'Récupération...');
+                    this.updateStatusElement('last-attempt', new Date().toLocaleTimeString('fr-FR'));
+
+                    const rawData = await this.apiService.fetchData();
+                    
+                    let updateCount = 0;
+                    Object.entries(rawData).forEach(([symbol, data]) => {
+                        if (AppConfig.ETF_DEFINITIONS[symbol]) {
+                            try {
+                                this.matrixAnalyzer.updateETFData(symbol, data);
+                                updateCount++;
+                                this.debugManager.success(`${symbol} mis à jour`);
+                            } catch (error) {
+                                this.debugManager.error(`Erreur ${symbol}: ${error.message}`);
+                            }
+                        }
+                    });
+
+                    this.updateAllDisplays();
+                    this.state.lastRefresh = new Date();
+                    
+                    this.updateStatusElement('api-status', '✅ OK');
+                    this.updateStatusElement('last-refresh', 
+                        `Dernière MAJ: ${this.state.lastRefresh.toLocaleTimeString('fr-FR')}`
+                    );
+
+                    this.debugManager.success(`${updateCount} ETF mis à jour avec succès`);
+
+                } catch (error) {
+                    const errorInfo = ErrorHandler.handle(error, 'Refresh Data');
+                    this.updateStatusElement('api-status', '❌ Erreur');
+                    
+                    const userMessage = ErrorHandler.createUserFriendlyMessage(error, 'Rafraîchissement');
+                    alert(`❌ ${userMessage}\n\nConsultez la console pour plus de détails.`);
+                    
+                } finally {
+                    this.setButtonLoading(refreshBtn, 'Actualiser', false);
+                    this.debugManager.endOperation('REFRESH DATA', startTime);
+                }
+            }
+
+            async testConnection() {
+                const testBtn = document.getElementById('test-connection-btn');
+                const startTime = this.debugManager.startOperation('TEST CONNECTION');
+                
+                try {
+                    this.setButtonLoading(testBtn, 'Test...');
+                    this.updateStatusElement('api-status', 'Test en cours...');
+                    
+                    await this.apiService.fetchData();
+                    
+                    this.updateStatusElement('api-status', '✅ Connecté');
+                    alert('✅ TEST API RÉUSSI\n\nConnexion établie avec succès!\nTous les systèmes opérationnels.');
+                    
+                } catch (error) {
+                    const errorInfo = ErrorHandler.handle(error, 'Test Connection');
+                    this.updateStatusElement('api-status', '❌ Erreur');
+                    
+                    const userMessage = ErrorHandler.createUserFriendlyMessage(error, 'Test de connexion');
+                    alert(`❌ TEST API ÉCHOUÉ\n\n${userMessage}\n\nVérifiez votre connexion internet et l'URL de l'API.`);
+                    
+                } finally {
+                    this.setButtonLoading(testBtn, 'Test API', false);
+                    this.debugManager.endOperation('TEST CONNECTION', startTime);
+                }
+            }
+
+            simulatePurchase() {
+                try {
+                    const etfData = this.matrixAnalyzer.getETFData(this.state.currentETF);
+                    
+                    if (!etfData || !etfData.isValid) {
+                        alert('⚠️ Veuillez d\'abord actualiser les données pour avoir les prix');
+                        return;
+                    }
+
+                    const purchase = this.tradingEngine.simulatePurchase(
+                        this.state.currentETF, 
+                        etfData.price
+                    );
+
+                    this.updatePurchaseHistory();
+                    
+                    this.debugManager.success(`Achat simulé: ${purchase.etf} à ${purchase.price}€`);
+                    alert(`✅ ACHAT SIMULÉ RÉUSSI!\n\nETF: ${purchase.etf}\nPrix: ${purchase.price}€\nDate: ${new Date(purchase.date).toLocaleString('fr-FR')}`);
+
+                } catch (error) {
+                    const errorInfo = ErrorHandler.handle(error, 'Simulate Purchase');
+                    const userMessage = ErrorHandler.createUserFriendlyMessage(error, 'Simulation d\'achat');
+                    alert(`❌ ${userMessage}`);
+                }
+            }
+
+            updateCurrentETF(etfSymbol) {
+                this.state.currentETF = etfSymbol;
+                this.updateRecommendations();
+                this.debugManager.info(`ETF principal changé: ${etfSymbol}`);
+            }
+
+            updateTradingThreshold(threshold) {
+                if (threshold >= AppConfig.TRADING.MIN_THRESHOLD && 
+                    threshold <= AppConfig.TRADING.MAX_THRESHOLD) {
+                    this.state.tradingThreshold = threshold;
+                    this.updateRecommendations();
+                    this.debugManager.info(`Seuil de trading changé: ${threshold}%`);
+                } else {
+                    this.debugManager.warning(`Seuil invalide: ${threshold}%`);
+                }
+            }
+
+            updateAllDisplays() {
+                this.updateETFDisplay();
+                this.updateMatrixDisplay();
+                this.updateRecommendations();
+                this.updateStatusDisplay();
+                
+                // Vérifier les opportunités pour les alertes
+                const matrix = this.matrixAnalyzer.generateMatrix();
+                this.alertService.checkOpportunities(matrix);
+            }
+
+            updateETFDisplay() {
+                const etfData = this.matrixAnalyzer.getAllETFData();
+                this.etfDisplayController.render(etfData);
+            }
+
+            updateMatrixDisplay() {
+                const matrix = this.matrixAnalyzer.generateMatrix();
+                const etfList = Object.keys(AppConfig.ETF_DEFINITIONS);
+                this.matrixDisplayController.render(matrix, etfList);
+            }
+
+            updateRecommendations() {
+                const opportunities = this.matrixAnalyzer.findOpportunities(
+                    this.state.currentETF, 
+                    this.state.tradingThreshold
+                );
+                this.recommendationController.render(opportunities);
+            }
+
+            updatePurchaseHistory() {
+                const history = this.tradingEngine.getPurchaseHistory();
+                this.purchaseHistoryController.render(history);
+            }
+
+            // Cleanup method
+            cleanup() {
+                this.autoRefreshService.stop();
+                this.debugManager.info('Application fermée proprement');
+            }
+
+            // Utility methods
+            setButtonLoading(button, text, loading = true) {
+                if (!button) return;
+                
+                button.disabled = loading;
+                const icon = loading ? 
+                    '<i data-lucide="refresh-cw" class="w-4 h-4 mr-2 animate-spin"></i>' :
+                    button.dataset.originalIcon || '<i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>';
+                
+                button.innerHTML = `${icon}${text}`;
+                
+                if (!loading) {
+                    lucide.createIcons();
+                }
+            }
+
+            updateStatusElement(elementId, text) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = text;
+                }
+            }
+        }
+
+        // =============================================================================
+        // APPLICATION INITIALIZATION
+        // =============================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const app = new TradingApplication();
+                lucide.createIcons();
+                
+                // Cleanup on page unload
+                window.addEventListener('beforeunload', () => {
+                    app.cleanup();
+                });
+                
+                // Welcome message
+                setTimeout(() => {
+                    alert('🎯 TRADING MATRIX v2.1\n\n✅ Architecture SOLID appliquée\n✅ Code Clean & Maintenable\n✅ Séparation des responsabilités\n✅ Gestion d\'erreurs centralisée\n✅ Services découplés\n\n🆕 NOUVELLES FONCTIONNALITÉS:\n🔄 Auto-actualisation (15min par défaut)\n🚨 Système d\'alertes (seuil 1% par défaut)\n🔔 Notifications sonores\n📊 Historique des alertes\n\n📈 AJOUTÉ: Variations quotidiennes et hebdomadaires\n\n🚀 Trading intelligent automatisé!');
+                }, 1000);
+                
+            } catch (error) {
+                console.error('💥 Erreur critique à l\'initialisation:', error);
+                alert('💥 Erreur critique lors de l\'initialisation de l\'application.\nConsultez la console pour plus de détails.');
+            }
+        });
+    </script>
 </body>
 </html>
